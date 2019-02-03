@@ -72,7 +72,7 @@ class SmallVectorImpl {
         return (*this)[index];
     }
 
-    const value_type* at(int index) const {
+    const value_type& at(int index) const {
         if (index >= size()) throw std::out_of_range("");
         return (*this)[index];
     }
@@ -99,6 +99,12 @@ class SmallVectorImpl {
     SmallVectorImpl& operator=(const SmallVectorImpl&) = delete;
     SmallVectorImpl& operator=(SmallVectorImpl&&) = delete;
 
+    static void destroyRange(pointer begin, pointer end) {
+        for (; begin != end; ++begin) {
+            begin->~value_type();
+        }
+    }
+
    private:
     pointer first_ = nullptr;
     pointer last_ = nullptr;
@@ -114,11 +120,6 @@ class SmallVectorImpl {
 
     bool isSmall() const { return first_ == getFirstSmallElement(); }
 
-    // TODO: std::memcpy is used for all types but will be undefined
-    // behaviour for type that are not trivially relocatable. This can be
-    // solved by SFINAE on type trait is_trivially_relocatable. This will
-    // not add a runtime overhead but will infer a small compile time
-    // increase.
     void resize(int newSize) {
         void* dest = malloc(sizeof(value_type) * newSize);
         pointer newFirst = static_cast<pointer>(dest);
@@ -131,7 +132,13 @@ class SmallVectorImpl {
         first_ = newFirst;
     }
 
-    void uninitializedRelocate(pointer first, pointer last, pointer dest) {
+    // TODO: std::memcpy is used for all types but will be undefined
+    // behaviour for type that are not trivially relocatable. This can be
+    // solved by SFINAE on type trait is_trivially_relocatable. This will
+    // not add a runtime overhead but will infer a small compile time
+    // increase.
+    template <typename InputIt, typename FwdIt>
+    static void uninitializedRelocate(InputIt first, InputIt last, FwdIt dest) {
         std::memcpy(dest, first, sizeof(value_type) * (last - first));
     }
 };
@@ -145,9 +152,11 @@ class SmallVector : public SmallVectorImpl<T> {
         : SmallVectorImpl<T>(reinterpret_cast<T*>(buffer),
                              reinterpret_cast<T*>(buffer) + N) {}
 
+    ~SmallVector() { this->destroyRange(this->begin(), this->end()); }
+
     // TODO: SFINAE on input/forward/random access iterator
     template <typename InputIt>
-    SmallVector(InputIt* first, InputIt* last) : SmallVector() {
+    SmallVector(InputIt first, InputIt last) : SmallVector() {
         this->reserve(last - first);
         for (; first != last; ++first) {
             this->emplaceBack(*first);
