@@ -1,3 +1,15 @@
+// Contains the definitions and declarations of SmallVector<T, N> and
+// SmallVectorImpl<T> which behaves in a similar fashion to std::vector except
+// for the fact that the first N elements are stored on the stack and not
+// requiring any heap allocations.
+//
+// An instance of SmallVectorImpl<T> cant be instantiated but it can be used to
+// type erase the inline size template paramater N from SmallVector<T, N>.
+// i.e. void f(SmallVectorImpl<T>& v) can take any SmallVector<T, N> as long as
+// the T template parameter matches.
+
+#pragma once
+
 #include <cstring>
 #include <iterator>
 #include <stdexcept>
@@ -34,6 +46,10 @@ class SmallVectorImpl {
     using const_iterator = const_pointer;
     using reverse_iterator = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+
+    ~SmallVectorImpl() {
+        if (!isSmall()) free(first_);
+    }
 
     iterator begin() { return first_; }
     const_iterator begin() const { return first_; }
@@ -88,6 +104,11 @@ class SmallVectorImpl {
     int size() const { return head_ - first_; }
     int capacity() const { return last_ - first_; }
     bool isEmpty() const { return first_ == head_; }
+
+    void clear() {
+        destroyRange(first_, head_);
+        head_ = first_;
+    }
 
    protected:
     SmallVectorImpl(pointer first, pointer last)
