@@ -10,8 +10,11 @@
 
 #pragma once
 
+#include <cstddef>
 #include <cstring>
+#include <initializer_list>
 #include <iterator>
+#include <new>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
@@ -36,6 +39,7 @@ class SmallVectorImpl {
    public:
     using value_type = T;
     using size_type = int;
+    using difference_type = std::ptrdiff_t;
 
     using reference = value_type&;
     using const_reference = const value_type&;
@@ -131,6 +135,8 @@ class SmallVectorImpl {
     pointer last_ = nullptr;
     pointer head_ = nullptr;
 
+    // Returns a pointer to the first element of the inline buffer by
+    // calculating the offset from the this pointer and the buffer member.
     void* getFirstSmallElement() const {
         std::size_t offset = reinterpret_cast<std::size_t>(
             &(reinterpret_cast<detail::SmallVectorAlignment<T>*>(0)->buffer));
@@ -139,6 +145,7 @@ class SmallVectorImpl {
             reinterpret_cast<const char*>(this) + offset));
     }
 
+    // Returns whether the inlined buffer is currently in use to store the data.
     bool isSmall() const { return first_ == getFirstSmallElement(); }
 
     void resize(int newSize) {

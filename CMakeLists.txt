@@ -3,6 +3,7 @@ project(SmallVector VERSION 0.1.0)
 
 # config options
 option(SMALL_VECTOR_ENABLE_TESTS "Enable unit tests" ON)
+option(SMALL_VECTOR_ENABLE_BENCHMARKS "Enable benchmarks" ON)
 
 # compiler warnings
 if (MSVC)
@@ -27,4 +28,9 @@ target_include_directories(SmallVector INTERFACE
 # add tests
 if (SMALL_VECTOR_ENABLE_TESTS)
     add_subdirectory(test)
+endif()
+
+# add benchmarks
+if (SMALL_VECTOR_ENABLE_BENCHMARKS)
+    add_subdirectory(benchmark)
 endif()
