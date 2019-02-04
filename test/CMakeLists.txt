@@ -1,5 +1,7 @@
-add_executable(small_vector_test EXCLUDE_FROM_ALL main.cpp)
+add_executable(run_test EXCLUDE_FROM_ALL main.cpp)
 
-target_link_libraries(small_vector_test PUBLIC SmallVector::SmallVector)
+target_compile_options(run_test PRIVATE -fno-omit-frame-pointer -fsanitize=address -g)
+target_link_libraries(run_test PRIVATE -fsanitize=address -g)
+target_link_libraries(run_test PUBLIC SmallVector::SmallVector)
 
-add_custom_target(check COMMAND ./small_vector_test DEPENDS small_vector_test)
+add_custom_target(check COMMAND ./run_test DEPENDS run_test)
