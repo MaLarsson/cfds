@@ -20,7 +20,7 @@ include(CheckCXXCompilerFlag)
 add_library(SmallVector INTERFACE)
 add_library(SmallVector::SmallVector ALIAS SmallVector)
 
-target_compile_features(SmallVector INTERFACE cxx_std_17)
+target_compile_features(SmallVector INTERFACE cxx_std_11)
 
 target_include_directories(SmallVector INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)

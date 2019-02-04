@@ -5,7 +5,7 @@
 #include <string>
 
 void addString(SmallVectorImpl<std::unique_ptr<std::string>>& v) {
-    v.append(std::make_unique<std::string>("hello"));
+    v.emplaceBack(new std::string("hello"));
 }
 
 int main() {
