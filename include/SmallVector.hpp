@@ -151,7 +151,7 @@ class SmallVectorImpl {
     void resize(int newSize) {
         void* dest = malloc(sizeof(value_type) * newSize);
         pointer newFirst = static_cast<pointer>(dest);
-        uninitializedRelocate(first_, last_, newFirst);
+        uninitializedRelocate(first_, head_, newFirst);
 
         if (!isSmall()) free(first_);
 
@@ -166,8 +166,8 @@ class SmallVectorImpl {
     // not add a runtime overhead but will infer a small compile time
     // increase.
     template <typename InputIt, typename FwdIt>
-    static void uninitializedRelocate(InputIt first, InputIt last, FwdIt dest) {
-        std::memcpy(dest, first, sizeof(value_type) * (last - first));
+    static void uninitializedRelocate(InputIt begin, InputIt end, FwdIt dest) {
+        std::memcpy(dest, begin, sizeof(value_type) * (end - begin));
     }
 };
 
