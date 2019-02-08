@@ -14,10 +14,32 @@
 #include <cstring>
 #include <initializer_list>
 #include <iterator>
+#include <memory>
 #include <new>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
+
+namespace meta {
+
+template <bool B>
+using BoolConstant = std::integral_constant<bool, B>;
+
+template <typename T>
+struct IsTriviallyRelocatable
+    : BoolConstant<std::is_trivially_move_constructible<T>::value &&
+                   std::is_trivially_destructible<T>::value> {};
+
+template <typename T>
+struct IsTriviallyRelocatable<std::unique_ptr<T>> : std::true_type {};
+
+template <typename T>
+struct IsTriviallyRelocatable<std::shared_ptr<T>> : std::true_type {};
+
+template <typename T>
+struct IsTriviallyRelocatable<std::weak_ptr<T>> : std::true_type {};
+
+}  // namespace meta
 
 template <typename T>
 class SmallVectorImpl;
@@ -160,14 +182,22 @@ class SmallVectorImpl {
         first_ = newFirst;
     }
 
-    // TODO: std::memcpy is used for all types but will be undefined
-    // behaviour for type that are not trivially relocatable. This can be
-    // solved by SFINAE on type trait is_trivially_relocatable. This will
-    // not add a runtime overhead but will infer a small compile time
-    // increase.
-    template <typename InputIt, typename FwdIt>
-    static void uninitializedRelocate(InputIt begin, InputIt end, FwdIt dest) {
+    // Relocate using std::memcpy if T is trivially relocatable
+    template <typename U = T, typename InputIt, typename FwdIt>
+    typename std::enable_if<meta::IsTriviallyRelocatable<U>::value>::type
+    uninitializedRelocate(InputIt begin, InputIt end, FwdIt dest) {
         std::memcpy(dest, begin, sizeof(value_type) * (end - begin));
+    }
+
+    // Relocate using move constructor and destroy the old empty shell by
+    // calling the destructor if T is not trivially relocatable
+    template <typename U = T, typename InputIt, typename FwdIt>
+    typename std::enable_if<!meta::IsTriviallyRelocatable<U>::value>::type
+    uninitializedRelocate(InputIt begin, InputIt end, FwdIt dest) {
+        for (; begin != end; ++begin, ++dest) {
+            ::new (dest) value_type(std::move(*begin));
+            begin->~value_type();
+        }
     }
 };
 
