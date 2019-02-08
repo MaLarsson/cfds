@@ -3,7 +3,10 @@ project(SmallVector VERSION 0.1.0)
 
 # config options
 option(SMALL_VECTOR_ENABLE_TESTS "Enable unit tests" ON)
-option(SMALL_VECTOR_ENABLE_BENCHMARKS "Enable benchmarks" ON)
+option(SMALL_VECTOR_ENABLE_BENCHMARKS "Enable benchmarks" OFF)
+option(SMALL_VECTOR_ENABLE_ASAN "Enable address sanitizer" OFF)
+option(SMALL_VECTOR_ENABLE_UBSAN "Enable undefined behaviour sanitizer" OFF)
+option(SMALL_VECTOR_ENABLE_MSAN "Enable memory sanitizer" OFF)
 
 # compiler warnings
 if (MSVC)
