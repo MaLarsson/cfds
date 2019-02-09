@@ -39,6 +39,12 @@ struct IsTriviallyRelocatable<std::shared_ptr<T>> : std::true_type {};
 template <typename T>
 struct IsTriviallyRelocatable<std::weak_ptr<T>> : std::true_type {};
 
+template <typename Iterator>
+struct IsForwardIterator
+    : std::is_base_of<
+          std::forward_iterator_tag,
+          typename std::iterator_traits<Iterator>::iterator_category> {};
+
 }  // namespace meta
 
 template <typename T>
@@ -173,7 +179,7 @@ class SmallVectorImpl {
     void resize(int newSize) {
         void* dest = malloc(sizeof(value_type) * newSize);
         pointer newFirst = static_cast<pointer>(dest);
-        uninitializedRelocate(first_, head_, newFirst);
+        uninitializedRelocate(newFirst);
 
         if (!isSmall()) free(first_);
 
@@ -183,18 +189,18 @@ class SmallVectorImpl {
     }
 
     // Relocate using std::memcpy if T is trivially relocatable
-    template <typename U = T, typename InputIt, typename FwdIt>
+    template <typename U = T, typename ForwardIterator>
     typename std::enable_if<meta::IsTriviallyRelocatable<U>::value>::type
-    uninitializedRelocate(InputIt begin, InputIt end, FwdIt dest) {
-        std::memcpy(dest, begin, sizeof(value_type) * (end - begin));
+    uninitializedRelocate(ForwardIterator dest) {
+        std::memcpy(dest, first_, sizeof(value_type) * (head_ - first_));
     }
 
     // Relocate using move constructor and destroy the old empty shell by
     // calling the destructor if T is not trivially relocatable
-    template <typename U = T, typename InputIt, typename FwdIt>
+    template <typename U = T, typename ForwardIterator>
     typename std::enable_if<!meta::IsTriviallyRelocatable<U>::value>::type
-    uninitializedRelocate(InputIt begin, InputIt end, FwdIt dest) {
-        for (; begin != end; ++begin, ++dest) {
+    uninitializedRelocate(ForwardIterator dest) {
+        for (auto begin = first_; begin != last_; ++begin, ++dest) {
             ::new (dest) value_type(std::move(*begin));
             begin->~value_type();
         }
@@ -212,9 +218,23 @@ class SmallVector : public SmallVectorImpl<T> {
 
     ~SmallVector() { this->destroyRange(this->begin(), this->end()); }
 
-    // TODO: SFINAE on input/forward/random access iterator
-    template <typename InputIt>
-    SmallVector(InputIt first, InputIt last) : SmallVector() {
+    template <typename InputIterator>
+    SmallVector(
+        typename std::enable_if<!meta::IsForwardIterator<InputIterator>::value,
+                                InputIterator>::type first,
+        InputIterator last)
+        : SmallVector() {
+        for (; first != last; ++first) {
+            this->emplaceBack(*first);
+        }
+    }
+
+    template <typename ForwardIterator>
+    SmallVector(
+        typename std::enable_if<meta::IsForwardIterator<ForwardIterator>::value,
+                                ForwardIterator>::type first,
+        ForwardIterator last)
+        : SmallVector() {
         this->reserve(last - first);
         for (; first != last; ++first) {
             this->emplaceBack(*first);
