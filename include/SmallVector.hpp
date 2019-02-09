@@ -45,7 +45,7 @@ struct IsForwardIterator
           std::forward_iterator_tag,
           typename std::iterator_traits<Iterator>::iterator_category> {};
 
-}  // namespace meta
+} // namespace meta
 
 template <typename T>
 class SmallVectorImpl;
@@ -58,13 +58,13 @@ struct SmallVectorAlignment {
     typename std::aligned_storage<sizeof(T), alignof(T)>::type buffer;
 };
 
-}  // namespace detail
+} // namespace detail
 
 template <typename T>
 class SmallVectorImpl {
     using rvalue_reference = T&&;
 
-   public:
+ public:
     using value_type = T;
     using size_type = int;
     using difference_type = std::ptrdiff_t;
@@ -142,7 +142,7 @@ class SmallVectorImpl {
         head_ = first_;
     }
 
-   protected:
+ protected:
     SmallVectorImpl(pointer first, pointer last)
         : first_(first), last_(last), head_(first) {}
 
@@ -158,7 +158,7 @@ class SmallVectorImpl {
         }
     }
 
-   private:
+ private:
     pointer first_ = nullptr;
     pointer last_ = nullptr;
     pointer head_ = nullptr;
@@ -211,7 +211,7 @@ template <typename T, int N = 4>
 class SmallVector : public SmallVectorImpl<T> {
     static_assert(N > 0, "SmallVector requires capacity greater than 0.");
 
-   public:
+ public:
     SmallVector() noexcept
         : SmallVectorImpl<T>(reinterpret_cast<T*>(buffer),
                              reinterpret_cast<T*>(buffer) + N) {}
@@ -260,6 +260,6 @@ class SmallVector : public SmallVectorImpl<T> {
         // TODO
     }
 
-   private:
+ private:
     typename std::aligned_storage<sizeof(T), alignof(T)>::type buffer[N];
 };
