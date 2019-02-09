@@ -188,20 +188,42 @@ class SmallVectorImpl {
         first_ = newFirst;
     }
 
-    // Relocate using std::memcpy if T is trivially relocatable
+    // Relocate using std::memcpy if T is trivially relocatable.
     template <typename U = T, typename ForwardIterator>
     typename std::enable_if<meta::IsTriviallyRelocatable<U>::value>::type
-    uninitializedRelocate(ForwardIterator dest) {
+    uninitializedRelocate(ForwardIterator dest) noexcept {
         std::memcpy(dest, first_, sizeof(value_type) * (head_ - first_));
     }
 
-    // Relocate using move constructor and destroy the old empty shell by
-    // calling the destructor if T is not trivially relocatable
+    // Relocate by calling constructor and destructor as a pair since there is
+    // no risk of the constructor throwing.
     template <typename U = T, typename ForwardIterator>
-    typename std::enable_if<!meta::IsTriviallyRelocatable<U>::value>::type
-    uninitializedRelocate(ForwardIterator dest) {
+    typename std::enable_if<!meta::IsTriviallyRelocatable<U>::value &&
+                            std::is_nothrow_move_constructible<U>::value>::type
+    uninitializedRelocate(ForwardIterator dest) noexcept {
         for (auto begin = first_; begin != last_; ++begin, ++dest) {
             ::new (dest) value_type(std::move(*begin));
+            begin->~value_type();
+        }
+    }
+
+    // Relocate by calling the constructor and only after all elements have been
+    // relocated can the destructor for the old shells be called since the
+    // constructor might throw.
+    template <typename U = T, typename ForwardIterator>
+    typename std::enable_if<!meta::IsTriviallyRelocatable<U>::value &&
+                            !std::is_nothrow_move_constructible<U>::value>::type
+    uninitializedRelocate(ForwardIterator dest) {
+        try {
+            for (auto begin = first_; begin != last_; ++begin, ++dest) {
+                ::new (dest) value_type(std::move(*begin));
+            }
+        } catch (...) {
+            free(dest);
+            throw;
+        }
+
+        for (auto begin = first_; begin != last_; ++begin) {
             begin->~value_type();
         }
     }
