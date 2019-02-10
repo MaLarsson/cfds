@@ -151,6 +151,9 @@ class SmallVectorImpl {
         if (head_ != last_) resize(last_ - first_);
     }
 
+    pointer data() noexcept { return first_; }
+    const_pointer data() const noexcept { return first_; }
+
     int size() const { return head_ - first_; }
     int capacity() const { return last_ - first_; }
     bool isEmpty() const { return first_ == head_; }
