@@ -38,7 +38,7 @@ BENCHMARK(BM_SmallVectorAppendOverflow);
 static void BM_StdVectorPushBackOverflow(benchmark::State& state) {
     for (auto _ : state) {
         std::vector<std::unique_ptr<int>> v;
-        v.reserve(1);
+        v.reserve(4);
         benchmark::DoNotOptimize(v.data());
         for (int i = 0; i < 5; ++i)
             v.push_back(std::unique_ptr<int>(new int(i)));
