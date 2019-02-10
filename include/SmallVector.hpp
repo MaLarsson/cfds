@@ -25,10 +25,28 @@ namespace meta {
 template <bool B>
 using BoolConstant = std::integral_constant<bool, B>;
 
+template <std::size_t N>
+struct PriorityTag : PriorityTag<N - 1> {};
+
+template <>
+struct PriorityTag<0> {};
+
+namespace detail {
+
+template <typename T>
+auto IsTriviallyRelocatableImpl(PriorityTag<1>)
+    -> BoolConstant<T::IsTriviallyRelocatable::value>;
+
+template <typename T>
+auto IsTriviallyRelocatableImpl(PriorityTag<0>)
+    -> BoolConstant<std::is_trivially_move_constructible<T>::value &&
+                    std::is_trivially_destructible<T>::value>{};
+
+} // namespace detail
+
 template <typename T>
 struct IsTriviallyRelocatable
-    : BoolConstant<std::is_trivially_move_constructible<T>::value &&
-                   std::is_trivially_destructible<T>::value> {};
+    : decltype(detail::IsTriviallyRelocatableImpl<T>(PriorityTag<1>{})) {};
 
 template <typename T>
 struct IsTriviallyRelocatable<std::unique_ptr<T>> : std::true_type {};
