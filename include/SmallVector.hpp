@@ -98,7 +98,7 @@ class SmallVectorImpl {
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
     ~SmallVectorImpl() {
-        if (!isSmall()) free(first_);
+        if (!isSmall()) std::free(first_);
     }
 
     iterator begin() { return first_; }
@@ -185,6 +185,12 @@ class SmallVectorImpl {
     pointer last_ = nullptr;
     pointer head_ = nullptr;
 
+    static void* safeMalloc(std::size_t size) {
+        void* data = std::malloc(size);
+        if (data == nullptr) throw std::bad_alloc();
+        return data;
+    }
+
     // Returns a pointer to the first element of the inline buffer by
     // calculating the offset from the this pointer and the buffer member.
     void* getFirstSmallElement() const {
@@ -199,11 +205,11 @@ class SmallVectorImpl {
     bool isSmall() const { return first_ == getFirstSmallElement(); }
 
     void resize(int newSize) {
-        void* dest = malloc(sizeof(value_type) * newSize);
+        void* dest = safeMalloc(sizeof(value_type) * newSize);
         pointer newFirst = static_cast<pointer>(dest);
         uninitializedRelocate(newFirst);
 
-        if (!isSmall()) free(first_);
+        if (!isSmall()) std::free(first_);
 
         last_ = newFirst + newSize;
         head_ = newFirst + (head_ - first_);
@@ -241,7 +247,7 @@ class SmallVectorImpl {
                 ::new (dest) value_type(std::move(*begin));
             }
         } catch (...) {
-            free(dest);
+            std::free(dest);
             throw;
         }
 
