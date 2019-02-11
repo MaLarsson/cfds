@@ -34,12 +34,17 @@ int main() {
 
     SmallVector<int, 4> v3{0, 1, 2, 3};
     SmallVector<int, 8> v4(v3.begin(), v3.end());
+    SmallVector<int, 0> v5(v3.begin(), v3.end());
 
     for (int i : v3) {
         std::cout << i << ' ';
     }
 
     for (int i : v4) {
+        std::cout << i << ' ';
+    }
+
+    for (int i : v5) {
         std::cout << i << ' ';
     }
 

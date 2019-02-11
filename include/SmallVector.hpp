@@ -25,7 +25,7 @@ namespace meta {
 template <bool B>
 using BoolConstant = std::integral_constant<bool, B>;
 
-template <std::size_t N>
+template <int N>
 struct PriorityTag : PriorityTag<N - 1> {};
 
 template <>
@@ -164,8 +164,9 @@ class SmallVectorImpl {
     }
 
  protected:
-    SmallVectorImpl(pointer first, pointer last)
-        : first_(first), last_(last), head_(first) {}
+    SmallVectorImpl(int n) noexcept
+        : first_(reinterpret_cast<pointer>(getFirstSmallElement())),
+          last_(first_ + n), head_(first_) {}
 
     SmallVectorImpl() = delete;
     SmallVectorImpl(const SmallVectorImpl&) = delete;
@@ -222,7 +223,7 @@ class SmallVectorImpl {
     typename std::enable_if<!meta::IsTriviallyRelocatable<U>::value &&
                             std::is_nothrow_move_constructible<U>::value>::type
     uninitializedRelocate(ForwardIterator dest) noexcept {
-        for (auto begin = first_; begin != last_; ++begin, ++dest) {
+        for (auto begin = first_; begin != head_; ++begin, ++dest) {
             ::new (dest) value_type(std::move(*begin));
             begin->~value_type();
         }
@@ -236,7 +237,7 @@ class SmallVectorImpl {
                             !std::is_nothrow_move_constructible<U>::value>::type
     uninitializedRelocate(ForwardIterator dest) {
         try {
-            for (auto begin = first_; begin != last_; ++begin, ++dest) {
+            for (auto begin = first_; begin != head_; ++begin, ++dest) {
                 ::new (dest) value_type(std::move(*begin));
             }
         } catch (...) {
@@ -244,20 +245,29 @@ class SmallVectorImpl {
             throw;
         }
 
-        for (auto begin = first_; begin != last_; ++begin) {
+        for (auto begin = first_; begin != head_; ++begin) {
             begin->~value_type();
         }
     }
 };
 
+template <typename T, int N>
+struct SmallVectorStorage {
+    typename std::aligned_storage<sizeof(T), alignof(T)>::type buffer[N];
+};
+
+// SmallVectorStorage<T, 0> has to be aligned as if it contained an internal
+// buffer so that the pointer arithmetic in
+// SmallVectorImpl<T>::getFirstSmallElement() will work.
+template <typename T>
+struct alignas(alignof(T)) SmallVectorStorage<T, 0> {};
+
 template <typename T, int N = 4>
-class SmallVector : public SmallVectorImpl<T> {
-    static_assert(N > 0, "SmallVector requires capacity greater than 0.");
+class SmallVector : public SmallVectorImpl<T>, SmallVectorStorage<T, N> {
+    static_assert(N > -1, "SmallVector requires N >= 0");
 
  public:
-    SmallVector() noexcept
-        : SmallVectorImpl<T>(reinterpret_cast<T*>(buffer),
-                             reinterpret_cast<T*>(buffer) + N) {}
+    SmallVector() noexcept : SmallVectorImpl<T>(N) {}
 
     ~SmallVector() { this->destroyRange(this->begin(), this->end()); }
 
@@ -302,7 +312,4 @@ class SmallVector : public SmallVectorImpl<T> {
         (void)other;
         // TODO
     }
-
- private:
-    typename std::aligned_storage<sizeof(T), alignof(T)>::type buffer[N];
 };
