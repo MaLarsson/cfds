@@ -148,7 +148,7 @@ class SmallVectorImpl {
     }
 
     void shrinkToFit() {
-        if (head_ != last_) resize(last_ - first_);
+        if (head_ != last_) resize(head_ - first_);
     }
 
     pointer data() noexcept { return first_; }
