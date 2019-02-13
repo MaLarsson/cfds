@@ -119,7 +119,7 @@ class SmallVectorImpl {
 
     template <typename... Args>
     value_type& emplaceBack(Args&&... args) {
-        if (head_ == last_) resize((last_ - first_) * 2);
+        if (head_ == last_) resize(capacity() + 1);
         ::new (head_++) value_type(std::forward<Args>(args)...);
         return *(head_ - 1);
     }
@@ -144,11 +144,7 @@ class SmallVectorImpl {
     }
 
     void reserve(int size) {
-        if (size > (last_ - first_)) resize(size);
-    }
-
-    void shrinkToFit() {
-        if (head_ != last_) resize(head_ - first_);
+        if (size > capacity()) resize(size);
     }
 
     pointer data() noexcept { return first_; }
@@ -185,6 +181,16 @@ class SmallVectorImpl {
     pointer last_ = nullptr;
     pointer head_ = nullptr;
 
+    static std::uint64_t nextPowerOfTwo(std::uint64_t n) {
+        n |= (n >> 1);
+        n |= (n >> 2);
+        n |= (n >> 4);
+        n |= (n >> 8);
+        n |= (n >> 16);
+        n |= (n >> 32);
+        return n + 1;
+    }
+
     static void* safeMalloc(std::size_t size) {
         void* data = std::malloc(size);
         if (data == nullptr) throw std::bad_alloc();
@@ -204,15 +210,19 @@ class SmallVectorImpl {
     // Returns whether the inlined buffer is currently in use to store the data.
     bool isSmall() const { return first_ == getFirstSmallElement(); }
 
-    void resize(int newSize) {
+    void resize(int sizeHint) {
+        int powerOfTwo = static_cast<int>(nextPowerOfTwo(capacity()));
+        int newSize = std::max(sizeHint, powerOfTwo);
+
         void* dest = safeMalloc(sizeof(value_type) * newSize);
         pointer newFirst = static_cast<pointer>(dest);
+
         uninitializedRelocate(newFirst);
 
         if (!isSmall()) std::free(first_);
 
         last_ = newFirst + newSize;
-        head_ = newFirst + (head_ - first_);
+        head_ = newFirst + size();
         first_ = newFirst;
     }
 
@@ -220,7 +230,7 @@ class SmallVectorImpl {
     template <typename U = T, typename ForwardIterator>
     typename std::enable_if<meta::IsTriviallyRelocatable<U>::value>::type
     uninitializedRelocate(ForwardIterator dest) noexcept {
-        std::memcpy(dest, first_, sizeof(value_type) * (head_ - first_));
+        std::memcpy(dest, first_, sizeof(value_type) * size());
     }
 
     // Relocate by calling constructor and destructor as a pair since there is
