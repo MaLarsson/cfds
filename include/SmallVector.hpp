@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
 #include <cstring>
 #include <initializer_list>
@@ -159,6 +160,75 @@ class SmallVectorImpl {
         head_ = first_;
     }
 
+    SmallVectorImpl& operator=(const SmallVectorImpl& other) {
+        if (this == &other) return *this;
+
+        int otherSize = other.size();
+
+        if (size() >= otherSize) {
+            if (otherSize > 0) {
+                pointer newEnd = std::copy(other.begin(), other.end(), begin());
+                destroyRange(newEnd, end());
+                head_ = newEnd;
+            } else {
+                clear();
+            }
+
+            return *this;
+        }
+
+        if (capacity() < otherSize) {
+            clear();
+            resize(otherSize);
+        } else if (size() > 0) {
+            std::copy(other.begin(), other.begin() + size(), begin());
+        }
+
+        std::uninitialized_copy(other.begin() + size(), other.end(),
+                                begin() + size());
+
+        head_ = first_ + otherSize;
+
+        return *this;
+    }
+
+    SmallVectorImpl& operator=(SmallVectorImpl&& other) {
+        if (this == &other) return *this;
+
+        // TODO: steal buffer if not inlined ...
+
+        int otherSize = other.size();
+
+        if (size() >= otherSize) {
+            if (otherSize > 0) {
+                pointer newEnd = std::move(other.begin(), other.end(), begin());
+                destroyRange(newEnd, end());
+                head_ = newEnd;
+            } else {
+                clear();
+            }
+
+            other.clear();
+
+            return *this;
+        }
+
+        if (capacity() < otherSize) {
+            clear();
+            resize(otherSize);
+        } else if (size() > 0) {
+            std::move(other.begin(), other.begin() + size(), begin());
+        }
+
+        uninitializedMove(other.begin() + size(), other.end(),
+                          begin() + size());
+
+        head_ = first_ + otherSize;
+        other.clear();
+
+        return *this;
+    }
+
  protected:
     SmallVectorImpl(int n) noexcept
         : first_(reinterpret_cast<pointer>(getFirstSmallElement())),
@@ -167,8 +237,6 @@ class SmallVectorImpl {
     SmallVectorImpl() = delete;
     SmallVectorImpl(const SmallVectorImpl&) = delete;
     SmallVectorImpl(SmallVectorImpl&&) = delete;
-    SmallVectorImpl& operator=(const SmallVectorImpl&) = delete;
-    SmallVectorImpl& operator=(SmallVectorImpl&&) = delete;
 
     static void destroyRange(pointer begin, pointer end) {
         for (; begin != end; ++begin) {
@@ -195,6 +263,13 @@ class SmallVectorImpl {
         void* data = std::malloc(size);
         if (data == nullptr) throw std::bad_alloc();
         return data;
+    }
+
+    template <typename InputIterator, typename ForwardIterator>
+    static void uninitializedMove(InputIterator first, InputIterator last,
+                                  ForwardIterator dest) {
+        std::uninitialized_copy(std::make_move_iterator(first),
+                                std::make_move_iterator(last), dest);
     }
 
     // Returns a pointer to the first element of the inline buffer by
@@ -324,8 +399,20 @@ class SmallVector : public SmallVectorImpl<T>, SmallVectorStorage<T, N> {
         }
     }
 
-    SmallVector(SmallVector&& other) {
-        (void)other;
-        // TODO
+    SmallVector(SmallVector&& other) : SmallVector() {
+        this->reserve(other.size());
+        for (auto&& element : other) {
+            this->emplaceBack(std::move(element));
+        }
+    }
+
+    SmallVector& operator=(const SmallVector& other) {
+        SmallVectorImpl<T>::operator=(other);
+        return *this;
+    }
+
+    SmallVector& operator=(SmallVector&& other) {
+        SmallVectorImpl<T>::operator=(std::move(other));
+        return *this;
     }
 };
