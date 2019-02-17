@@ -163,10 +163,8 @@ class SmallVectorImpl {
     SmallVectorImpl& operator=(const SmallVectorImpl& other) {
         if (this == &other) return *this;
 
-        int otherSize = other.size();
-
-        if (size() >= otherSize) {
-            if (otherSize > 0) {
+        if (size() >= other.size()) {
+            if (other.size() > 0) {
                 pointer newEnd = std::copy(other.begin(), other.end(), begin());
                 destroyRange(newEnd, end());
                 head_ = newEnd;
@@ -177,9 +175,9 @@ class SmallVectorImpl {
             return *this;
         }
 
-        if (capacity() < otherSize) {
+        if (capacity() < other.size()) {
             clear();
-            resize(otherSize);
+            resize(other.size());
         } else if (size() > 0) {
             std::copy(other.begin(), other.begin() + size(), begin());
         }
@@ -187,7 +185,7 @@ class SmallVectorImpl {
         std::uninitialized_copy(other.begin() + size(), other.end(),
                                 begin() + size());
 
-        head_ = first_ + otherSize;
+        head_ = first_ + other.size();
 
         return *this;
     }
@@ -195,12 +193,23 @@ class SmallVectorImpl {
     SmallVectorImpl& operator=(SmallVectorImpl&& other) {
         if (this == &other) return *this;
 
-        // TODO: steal buffer if not inlined ...
+        if (!other.isSmall()) {
+            destroyRange(first_, head_);
 
-        int otherSize = other.size();
+            if (!isSmall()) std::free(first_);
 
-        if (size() >= otherSize) {
-            if (otherSize > 0) {
+            first_ = other.first_;
+            head_ = other.head_;
+            last_ = other.last_;
+
+            pointer elem = static_cast<pointer>(other.getFirstSmallElement());
+            other.first_ = other.head_ = other.last_ = elem;
+
+            return *this;
+        }
+
+        if (size() >= other.size()) {
+            if (other.size() > 0) {
                 pointer newEnd = std::move(other.begin(), other.end(), begin());
                 destroyRange(newEnd, end());
                 head_ = newEnd;
@@ -213,9 +222,9 @@ class SmallVectorImpl {
             return *this;
         }
 
-        if (capacity() < otherSize) {
+        if (capacity() < other.size()) {
             clear();
-            resize(otherSize);
+            resize(other.size());
         } else if (size() > 0) {
             std::move(other.begin(), other.begin() + size(), begin());
         }
@@ -223,7 +232,7 @@ class SmallVectorImpl {
         uninitializedMove(other.begin() + size(), other.end(),
                           begin() + size());
 
-        head_ = first_ + otherSize;
+        head_ = first_ + other.size();
         other.clear();
 
         return *this;
