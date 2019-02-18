@@ -125,7 +125,20 @@ class SmallVectorImpl {
         return *(head_ - 1);
     }
 
-    void append(const value_type& value) { emplaceBack(value); }
+    // Use memcpy instread of placement new when T is trivially copyable.
+    template <typename U = T>
+    typename std::enable_if<std::is_trivially_copyable<U>::value>::type
+    append(const value_type& value) {
+        if (head_ == last_) resize(capacity() + 1);
+        std::memcpy(head_++, &value, sizeof(value_type));
+    }
+
+    template <typename U = T>
+    typename std::enable_if<!std::is_trivially_copyable<U>::value>::type
+    append(const value_type& value) {
+        emplaceBack(value);
+    }
+
     void append(value_type&& value) { emplaceBack(std::move(value)); }
 
     value_type& back() { return *(head_ - 1); }
@@ -247,7 +260,14 @@ class SmallVectorImpl {
     SmallVectorImpl(const SmallVectorImpl&) = delete;
     SmallVectorImpl(SmallVectorImpl&&) = delete;
 
-    static void destroyRange(pointer begin, pointer end) {
+    // Turn destroyRange into a noop when T is trivially copyable.
+    template <typename U = T>
+    static typename std::enable_if<std::is_trivially_copyable<U>::value>::type
+    destroyRange(pointer, pointer) {}
+
+    template <typename U = T>
+    static typename std::enable_if<!std::is_trivially_copyable<U>::value>::type
+    destroyRange(pointer begin, pointer end) {
         for (; begin != end; ++begin) {
             begin->~value_type();
         }
