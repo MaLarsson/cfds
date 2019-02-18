@@ -402,17 +402,11 @@ class SmallVector : public SmallVectorImpl<T>, SmallVectorStorage<T, N> {
     }
 
     SmallVector(const SmallVector& other) : SmallVector() {
-        this->reserve(other.size());
-        for (auto& element : other) {
-            this->emplaceBack(element);
-        }
+        if (!other.isEmpty()) SmallVectorImpl<T>::operator=(other);
     }
 
     SmallVector(SmallVector&& other) : SmallVector() {
-        this->reserve(other.size());
-        for (auto&& element : other) {
-            this->emplaceBack(std::move(element));
-        }
+        if (!other.isEmpty()) SmallVectorImpl<T>::operator=(std::move(other));
     }
 
     SmallVector& operator=(const SmallVector& other) {
