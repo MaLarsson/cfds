@@ -130,7 +130,7 @@ class SmallVectorImpl {
     typename std::enable_if<std::is_trivially_copyable<U>::value>::type
     append(const value_type& value) {
         if (head_ == last_) resize(capacity() + 1);
-        std::memcpy(head_++, &value, sizeof(value_type));
+        std::memcpy(head_++, std::addressof(value), sizeof(value_type));
     }
 
     template <typename U = T>
