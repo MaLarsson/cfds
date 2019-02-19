@@ -125,18 +125,8 @@ class SmallVectorImpl {
         return *(head_ - 1);
     }
 
-    // Use memcpy instread of placement new when T is trivially copyable.
-    template <typename U = T>
-    typename std::enable_if<std::is_trivially_copyable<U>::value>::type
-    append(const value_type& value) {
-        if (head_ == last_) resize(capacity() + 1);
-        std::memcpy(head_++, std::addressof(value), sizeof(value_type));
-    }
-
-    template <typename U = T>
-    typename std::enable_if<!std::is_trivially_copyable<U>::value>::type
-    append(const value_type& value) {
-        emplaceBack(value);
+    void append(const value_type& value) {
+        appendImpl(value, std::is_trivially_copyable<U>::type);
     }
 
     void append(value_type&& value) { emplaceBack(std::move(value)); }
@@ -299,6 +289,16 @@ class SmallVectorImpl {
                                   ForwardIterator dest) {
         std::uninitialized_copy(std::make_move_iterator(first),
                                 std::make_move_iterator(last), dest);
+    }
+
+    // Use memcpy instread of placement new when T is trivially copyable.
+    void appendImpl(const value_type& value, std::true_type) {
+        if (head_ == last_) resize(capacity() + 1);
+        std::memcpy(head_++, std::addressof(value), sizeof(value_type));
+    }
+
+    void appendImpl(const value_type& value, std::false_type) {
+        emplaceBack(value);
     }
 
     // Returns a pointer to the first element of the inline buffer by
