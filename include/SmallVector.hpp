@@ -66,6 +66,8 @@ struct IsForwardIterator
 
 } // namespace meta
 
+namespace cfds {
+
 template <typename T>
 class SmallVectorImpl;
 
@@ -439,3 +441,5 @@ class SmallVector : public SmallVectorImpl<T>, SmallVectorStorage<T, N> {
         return *this;
     }
 };
+
+} // namespace cfds

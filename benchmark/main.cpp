@@ -5,7 +5,7 @@
 
 static void BM_SmallVectorAppendOne(benchmark::State& state) {
     for (auto _ : state) {
-        SmallVector<std::unique_ptr<int>, 1> v;
+        cfds::SmallVector<std::unique_ptr<int>, 1> v;
         benchmark::DoNotOptimize(v.data());
         v.append(std::unique_ptr<int>(new int(1)));
         benchmark::ClobberMemory();
@@ -26,7 +26,7 @@ BENCHMARK(BM_StdVectorPushBackOne);
 
 static void BM_SmallVectorAppendOverflow(benchmark::State& state) {
     for (auto _ : state) {
-        SmallVector<std::unique_ptr<int>, 4> v;
+        cfds::SmallVector<std::unique_ptr<int>, 4> v;
         benchmark::DoNotOptimize(v.data());
         for (int i = 0; i < 5; ++i)
             v.append(std::unique_ptr<int>(new int(i)));
