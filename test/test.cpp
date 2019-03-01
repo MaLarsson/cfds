@@ -48,3 +48,13 @@ TEST_CASE("hash stuff", "") {
 
     CHECK(slot < size);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// DenseSet tests
+
+#include <SmallDenseSet.hpp>
+
+TEST_CASE("DenseSet", "") {
+    cfds::DenseSet<int> set1{1};
+    cfds::DenseSet<std::string> set2{"hello world"};
+}
