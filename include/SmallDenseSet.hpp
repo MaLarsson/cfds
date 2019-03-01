@@ -8,13 +8,17 @@
 namespace cfds {
 
 template <typename T>
-struct DenseSetTraits {};
+struct DenseSetTraits {
+    using value_type = T;
+};
 
 // Specialization of DenseSetTrats for std::string.
 // Note that the strings "__e" and "__t" are reserved to represent the empty
 // value and the tombstone value respectively.
 template <>
 struct DenseSetTraits<std::string> {
+    using value_type = std::string;
+
     static value_type getEmpty() { return "__e"; }
     static value_type getTombstone() { return "__t"; }
 };
@@ -26,11 +30,8 @@ template <typename T>
 struct HasFunctionX : std::false_type {};
 
 template <typename T>
-struct DenseSetTraitsImpl {};
-
-template <typename T>
-struct DenseSetTraitsImpl<DenseSetTraits<T>> {
-    using value_type = T;
+struct DenseSetTraitsImpl {
+    using value_type = typename T::value_type;
 
     // Get empty
     template <typename U = T,
