@@ -1,7 +1,7 @@
 // Contains the definitions and declarations of SmallVector<T, N> and
 // SmallVectorImpl<T> which behaves in a similar fashion to std::vector except
-// for the fact that the first N elements are stored on the stack and not
-// requiring any heap allocations.
+// for the fact that the first N elements are stored on the stack to avoid early
+// heap allocations.
 //
 // An instance of SmallVectorImpl<T> cant be instantiated but it can be used to
 // type erase the inline size template paramater N from SmallVector<T, N>.

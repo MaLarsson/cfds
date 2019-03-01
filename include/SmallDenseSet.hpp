@@ -1,3 +1,17 @@
+// Contains the definitions and declarations of SmallDenseSet<T, N, Traits> and
+// SmallDenseSetImpl<T, Traits>.
+//
+// SmallDenseSet<T, N, Traits> is a hash set using open addressing and quadratic
+// probing to handle collisions. It also has the first N buckets stored on the
+// stack to avoid early heap allocations.
+//
+// An instance of SmallDenseSetImpl<T, Traits> cant be instantiated but it can
+// be used to type erase the inline size template paramater N from
+// SmallDenseSet<T, N, Traits>.
+// i.e. void f(SmallDenseSetImpl<T, Traits>& v) can take any
+// SmallDenseSet<T, N, Traits> as long as the T and Traits template parameter
+// matches.
+
 #pragma once
 
 #include <functional>
