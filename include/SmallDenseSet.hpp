@@ -19,6 +19,56 @@
 #include <string>
 #include <utility>
 
+#define CFDS_META_HAS_FUNCTION(name, fn)                                       \
+    template <typename T, typename Ret, typename... Args>                      \
+    struct name {                                                              \
+        using type = std::false_type;                                          \
+        static constexpr bool value = false;                                   \
+    };                                                                         \
+                                                                               \
+    template <typename T, typename Ret, typename... Args>                      \
+    struct name<T, Ret(Args...)> {                                             \
+        template <typename T>                                                  \
+        static constexpr auto check(T*) ->                                     \
+            typename std::is_same<decltype(T::fn(std::declval<Args>()...)),    \
+                                  Ret>::type;                                  \
+                                                                               \
+        template <typename>                                                    \
+        static constexpr std::false_type check(...);                           \
+                                                                               \
+        using type = decltype(check<T>(nullptr));                              \
+                                                                               \
+        static constexpr bool value = type::value;                             \
+    };
+
+namespace meta {
+namespace detail {
+
+CFDS_META_HAS_FUNCTION(HasGetEmptyImpl, getEmpty);
+CFDS_META_HAS_FUNCTION(HasGetTombstoneImpl, getTombstone);
+CFDS_META_HAS_FUNCTION(HasGetHashImpl, getHash);
+CFDS_META_HAS_FUNCTION(HasCompareImpl, compare);
+
+} // namespace detail
+
+template <typename T>
+using HasGetEmpty = detail::HasGetEmptyImpl<T, typename T::value_type, void>;
+
+template <typename T>
+using HasGetTombstone =
+    detail::HasGetTombstoneImpl<T, typename T::value_type, void>;
+
+template <typename T>
+using HasGetHash =
+    detail::HasGetHashImpl<T, std::size_t, typename T::value_type>;
+
+template <typename T>
+using HasCompare =
+    detail::HasCompareImpl<T, bool, const typename T::value_type&,
+                           const typename T::value_type&>;
+
+} // namespace meta
+
 namespace cfds {
 
 template <typename T>
@@ -39,62 +89,61 @@ struct DenseSetTraits<std::string> {
 
 namespace detail {
 
-// TODO: should not always return std::false_type
-template <typename T>
-struct HasFunctionX : std::false_type {};
-
 template <typename T>
 struct DenseSetTraitsImpl {
     using value_type = typename T::value_type;
 
     // Get empty
-    template <typename U = T,
-              typename std::enable_if<!HasFunctionX<U>::value, int>::type = 0>
+    template <
+        typename U = T,
+        typename std::enable_if<!meta::HasGetEmpty<U>::value>::type* = nullptr>
     static value_type getEmpty() {
         return std::numeric_limits<value_type>::max();
     }
 
-    template <typename U = T,
-              typename std::enable_if<HasFunctionX<U>::value, int>::type = 0>
+    template <typename U = T, typename std::enable_if<
+                                  meta::HasGetEmpty<U>::value>::type* = nullptr>
     static value_type getEmpty() {
         return T::getEmpty();
     }
 
     // Get tombstone
     template <typename U = T,
-              typename std::enable_if<!HasFunctionX<U>::value, int>::type = 0>
+              typename std::enable_if<!meta::HasGetTombstone<U>::value>::type* =
+                  nullptr>
     static value_type getTombstone() {
         return std::numeric_limits<value_type>::min();
     }
 
     template <typename U = T,
-              typename std::enable_if<HasFunctionX<U>::value, int>::type = 0>
+              typename std::enable_if<meta::HasGetTombstone<U>::value>::type* =
+                  nullptr>
     static value_type getTombstone() {
         return T::getTombstone();
     }
 
     // Get hash
-    template <typename U = T,
-              typename std::enable_if<!HasFunctionX<U>::value, int>::type = 0>
+    template <typename U = T, typename std::enable_if<
+                                  !meta::HasGetHash<U>::value>::type* = nullptr>
     static std::size_t getHash(const value_type& value) {
         return std::hash<value_type>{}(value);
     }
 
-    template <typename U = T,
-              typename std::enable_if<HasFunctionX<U>::value, int>::type = 0>
+    template <typename U = T, typename std::enable_if<
+                                  meta::HasGetHash<U>::value>::type* = nullptr>
     static std::size_t getHash(const value_type& value) {
         return T::getHash(value);
     }
 
     // Compare
-    template <typename U = T,
-              typename std::enable_if<!HasFunctionX<U>::value, int>::type = 0>
+    template <typename U = T, typename std::enable_if<
+                                  !meta::HasCompare<U>::value>::type* = nullptr>
     static bool compare(const value_type& lhs, const value_type& rhs) {
         return lhs == rhs;
     }
 
-    template <typename U = T,
-              typename std::enable_if<HasFunctionX<U>::value, int>::type = 0>
+    template <typename U = T, typename std::enable_if<
+                                  meta::HasCompare<U>::value>::type* = nullptr>
     static bool compare(const value_type& lhs, const value_type& rhs) {
         return T::compare(lhs, rhs);
     }
