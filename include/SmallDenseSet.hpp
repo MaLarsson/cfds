@@ -28,9 +28,9 @@
                                                                                \
     template <typename T, typename Ret, typename... Args>                      \
     struct name<T, Ret(Args...)> {                                             \
-        template <typename T>                                                  \
-        static constexpr auto check(T*) ->                                     \
-            typename std::is_same<decltype(T::fn(std::declval<Args>()...)),    \
+        template <typename U>                                                  \
+        static constexpr auto check(U*) ->                                     \
+            typename std::is_same<decltype(U::fn(std::declval<Args>()...)),    \
                                   Ret>::type;                                  \
                                                                                \
         template <typename>                                                    \

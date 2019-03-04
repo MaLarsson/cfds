@@ -128,7 +128,7 @@ class SmallVectorImpl {
     }
 
     void append(const value_type& value) {
-        appendImpl(value, std::is_trivially_copyable<U>::type);
+        appendImpl(value, std::is_trivially_copyable<T>::type);
     }
 
     void append(value_type&& value) { emplaceBack(std::move(value)); }
