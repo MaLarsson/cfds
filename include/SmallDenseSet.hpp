@@ -52,20 +52,20 @@ CFDS_META_HAS_FUNCTION(HasCompareImpl, compare);
 } // namespace detail
 
 template <typename T>
-using HasGetEmpty = detail::HasGetEmptyImpl<T, typename T::value_type, void>;
+using HasGetEmpty = detail::HasGetEmptyImpl<T, typename T::value_type(void)>;
 
 template <typename T>
 using HasGetTombstone =
-    detail::HasGetTombstoneImpl<T, typename T::value_type, void>;
+    detail::HasGetTombstoneImpl<T, typename T::value_type(void)>;
 
 template <typename T>
 using HasGetHash =
-    detail::HasGetHashImpl<T, std::size_t, typename T::value_type>;
+    detail::HasGetHashImpl<T, std::size_t(const typename T::value_type&)>;
 
 template <typename T>
 using HasCompare =
-    detail::HasCompareImpl<T, bool, const typename T::value_type&,
-                           const typename T::value_type&>;
+    detail::HasCompareImpl<T, bool(const typename T::value_type&,
+                                   const typename T::value_type&)>;
 
 } // namespace meta
 
