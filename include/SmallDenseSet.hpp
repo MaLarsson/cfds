@@ -19,6 +19,9 @@
 #include <string>
 #include <utility>
 
+namespace meta {
+namespace detail {
+
 #define CFDS_META_HAS_FUNCTION(name, fn)                                       \
     template <typename T, typename Ret, typename... Args>                      \
     struct name {                                                              \
@@ -41,13 +44,12 @@
         static constexpr bool value = type::value;                             \
     };
 
-namespace meta {
-namespace detail {
-
 CFDS_META_HAS_FUNCTION(HasGetEmptyImpl, getEmpty);
 CFDS_META_HAS_FUNCTION(HasGetTombstoneImpl, getTombstone);
 CFDS_META_HAS_FUNCTION(HasGetHashImpl, getHash);
 CFDS_META_HAS_FUNCTION(HasCompareImpl, compare);
+
+#undef CFDS_META_HAS_FUNCTION
 
 } // namespace detail
 
