@@ -84,7 +84,6 @@ struct DenseSetTraits {
 template <>
 struct DenseSetTraits<std::string> {
     using value_type = std::string;
-
     static value_type getEmpty() { return "__e"; }
     static value_type getTombstone() { return "__t"; }
 };
