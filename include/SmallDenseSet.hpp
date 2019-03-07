@@ -73,6 +73,9 @@ using HasCompare =
 
 namespace cfds {
 
+template <typename T, typename Traits = DenseSetTraits<T>>
+class SmallDenseSetImpl;
+
 template <typename T>
 struct DenseSetTraits {
     using value_type = T;
@@ -148,12 +151,18 @@ struct DenseSetTraitsImpl {
     static bool compare(const value_type& lhs, const value_type& rhs) {
         return T::compare(lhs, rhs);
     }
+
+    template <typename T>
+    struct SmallDenseSetAlignment {
+        SmallDenseSetImpl<T> impl;
+        typename std::aligned_storage<sizeof(T), alignof(T)>::type buffer;
+    };
 };
 
 } // namespace detail
 
 template <typename T, typename Traits = DenseSetTraits<T>>
-class DenseSet {
+class SmallDenseSetImpl {
     using Hasher = detail::DenseSetTraitsImpl<Traits>;
 
  public:
@@ -170,15 +179,39 @@ class DenseSet {
     using iterator = pointer;
     using const_iterator = const_pointer;
 
-    DenseSet(const T& value) {
-        Hasher::getEmpty();
-        Hasher::getTombstone();
-        Hasher::getHash(value);
-        Hasher::compare(value, value);
-    }
+ protected:
+    SmallDenseSetImpl(int n) noexcept {}
+
+    SmallDenseSetImpl() = delete;
+    SmallDenseSetImpl(const SmallDenseSetImpl&) = delete;
+    SmallDenseSetImpl(SmallDenseSetImpl&&) = delete;
 
  private:
     // TODO ...
+};
+
+template <typename T, int N>
+struct SmallDenseSetStorage {
+    typename std::aligned_storage<sizeof(T), alignof(T)>::type buffer[N];
+};
+
+// SmallDenseSetStorage<T, 0> has to be aligned as if it contained an internal
+// buffer so that the pointer arithmetic in
+// SmallDenseSetImpl<T>::getFirstSmallElement() will work.
+template <typename T>
+struct alignas(alignof(T)) SmallDenseSetStorage<T, 0> {};
+
+template <typename T, int N, typename Traits = DenseSetTraits<T>>
+class SmallDenseSet : public SmallDenseSetImpl<T, Traits>,
+                      SmallDenseSetStorage<T, N> {
+    static_assert(N > -1, "SmallDenseSet requires N >= 0");
+
+ public:
+    SmallDenseSet() : SmallDenseSetImpl(N) {}
+
+    SmallDenseSet(std::initializer_list<T> init) : SmallDenseSet() {
+        // TODO ...
+    }
 };
 
 } // namespace cfds

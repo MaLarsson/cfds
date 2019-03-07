@@ -10,7 +10,7 @@ option(SMALL_VECTOR_ENABLE_MSAN "Enable memory sanitizer" OFF)
 
 # compiler warnings
 if (MSVC)
-    add_compile_options("/W4")
+    add_compile_options("/W3")
 else()
     add_compile_options("-Wpedantic")
     add_compile_options("-Wall")

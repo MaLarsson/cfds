@@ -55,6 +55,6 @@ TEST_CASE("hash stuff", "") {
 #include <SmallDenseSet.hpp>
 
 TEST_CASE("DenseSet", "") {
-    cfds::DenseSet<int> set1{1};
-    cfds::DenseSet<std::string> set2{"hello world"};
+    cfds::SmallDenseSet<int, 0> set1{1, 2};
+    cfds::SmallDenseSet<std::string, 0> set2{"hello world"};
 }
