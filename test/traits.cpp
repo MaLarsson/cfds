@@ -1,5 +1,6 @@
 #include <SmallDenseSet.hpp>
 #include <catch2/catch.hpp>
+#include <type_traits>
 
 namespace test {
 
@@ -19,10 +20,15 @@ struct DenseSetTraits<test::EmptyStruct> {
 } // namespace cfds
 
 TEST_CASE("HasFunctionX meta function", "[meta]") {
-    using Traits = cfds::DenseSetTraits<test::EmptyStruct>;
+    using T = cfds::DenseSetTraits<test::EmptyStruct>;
 
-    CHECK(meta::HasGetEmpty<Traits>::value);
-    CHECK_FALSE(meta::HasGetTombstone<Traits>::value);
-    CHECK_FALSE(meta::HasGetHash<Traits>::value);
-    CHECK(meta::HasCompare<Traits>::value);
+    CHECK(meta::HasGetEmpty<T>::value);
+    CHECK_FALSE(meta::HasGetTombstone<T>::value);
+    CHECK_FALSE(meta::HasGetHash<T>::value);
+    CHECK(meta::HasCompare<T>::value);
+
+    CHECK(std::is_same<meta::HasGetEmpty<T>::type, std::true_type>::value);
+    CHECK(std::is_same<meta::HasGetTombstone<T>::type, std::false_type>::value);
+    CHECK(std::is_same<meta::HasGetHash<T>::type, std::false_type>::value);
+    CHECK(std::is_same<meta::HasCompare<T>::type, std::true_type>::value);
 }
