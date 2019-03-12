@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include "Meta.hpp"
+
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
@@ -20,51 +22,6 @@
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
-
-namespace meta {
-
-template <bool B>
-using BoolConstant = std::integral_constant<bool, B>;
-
-template <int N>
-struct PriorityTag : PriorityTag<N - 1> {};
-
-template <>
-struct PriorityTag<0> {};
-
-namespace detail {
-
-template <typename T>
-auto IsTriviallyRelocatableImpl(PriorityTag<1>)
-    -> BoolConstant<T::IsTriviallyRelocatable::value>;
-
-template <typename T>
-auto IsTriviallyRelocatableImpl(PriorityTag<0>)
-    -> BoolConstant<std::is_trivially_move_constructible<T>::value &&
-                    std::is_trivially_destructible<T>::value>{};
-
-} // namespace detail
-
-template <typename T>
-struct IsTriviallyRelocatable
-    : decltype(detail::IsTriviallyRelocatableImpl<T>(PriorityTag<1>{})) {};
-
-template <typename T>
-struct IsTriviallyRelocatable<std::unique_ptr<T>> : std::true_type {};
-
-template <typename T>
-struct IsTriviallyRelocatable<std::shared_ptr<T>> : std::true_type {};
-
-template <typename T>
-struct IsTriviallyRelocatable<std::weak_ptr<T>> : std::true_type {};
-
-template <typename Iterator>
-struct IsForwardIterator
-    : std::is_base_of<
-          std::forward_iterator_tag,
-          typename std::iterator_traits<Iterator>::iterator_category> {};
-
-} // namespace meta
 
 namespace cfds {
 

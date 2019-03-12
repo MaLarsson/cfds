@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Meta.hpp"
+
 #include <cstddef>
 #include <functional>
 #include <limits>

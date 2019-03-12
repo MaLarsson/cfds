@@ -20,58 +20,6 @@
 #include <initializer_list>
 #include <cstddef>
 
-namespace meta {
-namespace detail {
-
-#define CFDS_META_HAS_FUNCTION(name, fn)                                       \
-    template <typename T, typename Ret, typename... Args>                      \
-    struct name {                                                              \
-        using type = std::false_type;                                          \
-        static constexpr bool value = false;                                   \
-    };                                                                         \
-                                                                               \
-    template <typename T, typename Ret, typename... Args>                      \
-    struct name<T, Ret(Args...)> {                                             \
-        template <typename U>                                                  \
-        static constexpr auto check(U*) ->                                     \
-            typename std::is_same<decltype(U::fn(std::declval<Args>()...)),    \
-                                  Ret>::type;                                  \
-                                                                               \
-        template <typename>                                                    \
-        static constexpr std::false_type check(...);                           \
-                                                                               \
-        using type = decltype(check<T>(nullptr));                              \
-                                                                               \
-        static constexpr bool value = type::value;                             \
-    };
-
-CFDS_META_HAS_FUNCTION(HasGetEmptyImpl, getEmpty);
-CFDS_META_HAS_FUNCTION(HasGetTombstoneImpl, getTombstone);
-CFDS_META_HAS_FUNCTION(HasGetHashImpl, getHash);
-CFDS_META_HAS_FUNCTION(HasCompareImpl, compare);
-
-#undef CFDS_META_HAS_FUNCTION
-
-} // namespace detail
-
-template <typename T>
-using HasGetEmpty = detail::HasGetEmptyImpl<T, typename T::value_type(void)>;
-
-template <typename T>
-using HasGetTombstone =
-    detail::HasGetTombstoneImpl<T, typename T::value_type(void)>;
-
-template <typename T>
-using HasGetHash =
-    detail::HasGetHashImpl<T, std::size_t(const typename T::value_type&)>;
-
-template <typename T>
-using HasCompare =
-    detail::HasCompareImpl<T, bool(const typename T::value_type&,
-                                   const typename T::value_type&)>;
-
-} // namespace meta
-
 namespace cfds {
 
 template <typename T, typename Traits = DenseSetTraits<T>>
