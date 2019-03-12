@@ -4,11 +4,11 @@
 
 TEST_CASE("construction of SmallVectorImpl",
           "[SmallVectorImpl, construction]") {
-    using type = cfds::SmallVectorImpl<int>;
+    using T = cfds::SmallVectorImpl<int>;
 
-    CHECK_FALSE(std::is_default_constructible<type>::value);
-    CHECK_FALSE(std::is_copy_constructible<type>::value);
-    CHECK_FALSE(std::is_move_constructible<type>::value);
+    CHECK_FALSE(std::is_default_constructible<T>::value);
+    CHECK_FALSE(std::is_copy_constructible<T>::value);
+    CHECK_FALSE(std::is_move_constructible<T>::value);
 }
 
 TEST_CASE("SmallVector assignment", "[SmallVector, assignment]") {
