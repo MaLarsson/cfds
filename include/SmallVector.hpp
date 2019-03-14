@@ -122,6 +122,9 @@ class SmallVectorImpl {
         head_ = first_;
     }
 
+    // Returns whether the inlined buffer is currently in use to store the data.
+    bool isSmall() const { return first_ == getFirstSmallElement(); }
+
     SmallVectorImpl& operator=(const SmallVectorImpl& other) {
         if (this == &other) return *this;
 
@@ -227,7 +230,7 @@ class SmallVectorImpl {
     pointer last_ = nullptr;
     pointer head_ = nullptr;
 
-    static std::uint64_t nextPowerOfTwo(std::uint64_t n) {
+    static constexpr std::uint64_t nextPowerOfTwo(std::uint64_t n) {
         n |= (n >> 1);
         n |= (n >> 2);
         n |= (n >> 4);
@@ -269,9 +272,6 @@ class SmallVectorImpl {
         return const_cast<void*>(reinterpret_cast<const void*>(
             reinterpret_cast<const char*>(this) + offset));
     }
-
-    // Returns whether the inlined buffer is currently in use to store the data.
-    bool isSmall() const { return first_ == getFirstSmallElement(); }
 
     void resize(int sizeHint) {
         int powerOfTwo = static_cast<int>(nextPowerOfTwo(capacity()));
@@ -342,8 +342,10 @@ template <typename T>
 struct alignas(alignof(T)) SmallVectorStorage<T, 0> {};
 
 template <typename T, int N = 4>
-class SmallVector : public SmallVectorImpl<T>, SmallVectorStorage<T, N> {
-    static_assert(N > -1, "SmallVector requires N >= 0");
+class SmallVector : public SmallVectorImpl<T>,
+                    private SmallVectorStorage<T, N> {
+    static_assert(N >= 0,
+                  "SmallVector<T, N> requires N to be greater or equal to 0.");
 
  public:
     SmallVector() noexcept : SmallVectorImpl<T>(N) {}
