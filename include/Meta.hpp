@@ -59,16 +59,17 @@ namespace detail {
                                                                                \
     template <typename T, typename Ret, typename... Args>                      \
     struct name<T, Ret(Args...)> {                                             \
-        template <typename U>                                                  \
-        static constexpr auto check(U*) ->                                     \
-            typename std::is_same<decltype(U::fn(std::declval<Args>()...)),    \
+     private:                                                                  \
+        template <typename>                                                    \
+        static constexpr auto check(PriorityTag<1>) ->                         \
+            typename std::is_same<decltype(T::fn(std::declval<Args>()...)),    \
                                   Ret>::type;                                  \
                                                                                \
         template <typename>                                                    \
-        static constexpr std::false_type check(...);                           \
+        static constexpr auto check(PriorityTag<0>) -> std::false_type;        \
                                                                                \
-        using type = decltype(check<T>(nullptr));                              \
-                                                                               \
+     public:                                                                   \
+        using type = decltype(check<T>(PriorityTag<1>{}));                     \
         static constexpr bool value = type::value;                             \
     };
 
