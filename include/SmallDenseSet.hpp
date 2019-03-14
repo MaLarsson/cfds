@@ -54,31 +54,54 @@ class SmallDenseSetImpl {
     using const_iterator = const_pointer;
 
  protected:
-    SmallDenseSetImpl(int n) noexcept {}
+    SmallDenseSetImpl(int n) noexcept
+        : buckets_(reinterpret_cast<pointer>(getFirstSmallElement())),
+          size_(n) {}
 
     SmallDenseSetImpl() = delete;
     SmallDenseSetImpl(const SmallDenseSetImpl&) = delete;
     SmallDenseSetImpl(SmallDenseSetImpl&&) = delete;
 
+    static constexpr bool isPowerOfTwo(int number) {
+        return (number & (number - 1)) == 0;
+    }
+
  private:
-    // TODO ...
+    pointer buckets_ = nullptr;
+    int size_ = 0;
+
+    // Returns a pointer to the first element of the inline buffer by
+    // calculating the offset from the this pointer and the buffer member.
+    void* getFirstSmallElement() const {
+        std::size_t offset = reinterpret_cast<std::size_t>(
+            &(reinterpret_cast<detail::SmallDenseSetAlignment<T>*>(0)->buffer));
+
+        return const_cast<void*>(reinterpret_cast<const void*>(
+            reinterpret_cast<const char*>(this) + offset));
+    }
 };
 
+namespace detail {
+
 template <typename T, int N>
-struct SmallDenseSetStorage {
+struct AlignedStorageBase {
     typename std::aligned_storage<sizeof(T), alignof(T)>::type buffer[N];
 };
 
-// SmallDenseSetStorage<T, 0> has to be aligned as if it contained an internal
+// AlignedStorageBase<T, 0> has to be aligned as if it contained an internal
 // buffer so that the pointer arithmetic in
 // SmallDenseSetImpl<T>::getFirstSmallElement() will work.
 template <typename T>
-struct alignas(alignof(T)) SmallDenseSetStorage<T, 0> {};
+struct alignas(alignof(T)) AlignedStorageBase<T, 0> {};
+
+} // namespace detail
 
 template <typename T, int N, typename Traits = DenseSetTraits<T>>
 class SmallDenseSet : public SmallDenseSetImpl<T, Traits>,
-                      SmallDenseSetStorage<T, N> {
-    static_assert(N > -1, "SmallDenseSet requires N >= 0");
+                      private detail::AlignedStorageBase<T, N> {
+    static_assert(N >= 0 && isPowerOfTwo(N),
+                  "SmallDenseSet<T, N, Traits> requires N to be a power of two "
+                  "or 0.");
 
  public:
     SmallDenseSet() : SmallDenseSetImpl(N) {}
