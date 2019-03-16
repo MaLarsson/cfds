@@ -15,21 +15,18 @@
 #pragma once
 
 #include "DenseSetTraits.hpp"
+#include "Utility.hpp"
 
 #include <utility>
 #include <initializer_list>
 #include <cstddef>
 
 namespace cfds {
-
-template <typename T, typename Traits = DenseSetTraits<T>>
-class SmallDenseSetImpl;
-
 namespace detail {
 
 template <typename T>
 struct SmallDenseSetAlignment {
-    SmallDenseSetImpl<T> impl;
+    T impl;
     typename std::aligned_storage<sizeof(T), alignof(T)>::type buffer;
 };
 
@@ -55,7 +52,7 @@ class SmallDenseSetImpl {
 
  protected:
     SmallDenseSetImpl(int n) noexcept
-        : buckets_(reinterpret_cast<pointer>(getFirstSmallElement())),
+        : buckets_(reinterpret_cast<pointer>(detail::getBufferAddress(this))),
           size_(n) {}
 
     SmallDenseSetImpl() = delete;
@@ -69,32 +66,7 @@ class SmallDenseSetImpl {
  private:
     pointer buckets_ = nullptr;
     int size_ = 0;
-
-    // Returns a pointer to the first element of the inline buffer by
-    // calculating the offset from the this pointer and the buffer member.
-    void* getFirstSmallElement() const {
-        std::size_t offset = reinterpret_cast<std::size_t>(
-            &(reinterpret_cast<detail::SmallDenseSetAlignment<T>*>(0)->buffer));
-
-        return const_cast<void*>(reinterpret_cast<const void*>(
-            reinterpret_cast<const char*>(this) + offset));
-    }
 };
-
-namespace detail {
-
-template <typename T, int N>
-struct AlignedStorageBase {
-    typename std::aligned_storage<sizeof(T), alignof(T)>::type buffer[N];
-};
-
-// AlignedStorageBase<T, 0> has to be aligned as if it contained an internal
-// buffer so that the pointer arithmetic in
-// SmallDenseSetImpl<T>::getFirstSmallElement() will work.
-template <typename T>
-struct alignas(alignof(T)) AlignedStorageBase<T, 0> {};
-
-} // namespace detail
 
 template <typename T, int N, typename Traits = DenseSetTraits<T>>
 class SmallDenseSet : public SmallDenseSetImpl<T, Traits>,

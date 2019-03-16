@@ -11,6 +11,7 @@
 #pragma once
 
 #include "Meta.hpp"
+#include "Utility.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -19,24 +20,10 @@
 #include <iterator>
 #include <memory>
 #include <new>
-#include <stdexcept>
 #include <type_traits>
 #include <utility>
 
 namespace cfds {
-
-template <typename T>
-class SmallVectorImpl;
-
-namespace detail {
-
-template <typename T>
-struct SmallVectorAlignment {
-    SmallVectorImpl<T> impl;
-    typename std::aligned_storage<sizeof(T), alignof(T)>::type buffer;
-};
-
-} // namespace detail
 
 template <typename T>
 class SmallVectorImpl {
@@ -123,7 +110,7 @@ class SmallVectorImpl {
     }
 
     // Returns whether the inlined buffer is currently in use to store the data.
-    bool isSmall() const { return first_ == getFirstSmallElement(); }
+    bool isSmall() const { return first_ == detail::getBufferAddress(this); }
 
     SmallVectorImpl& operator=(const SmallVectorImpl& other) {
         if (this == &other) return *this;
@@ -167,8 +154,8 @@ class SmallVectorImpl {
             head_ = other.head_;
             last_ = other.last_;
 
-            pointer elem = static_cast<pointer>(other.getFirstSmallElement());
-            other.first_ = other.head_ = other.last_ = elem;
+            other.first_ = other.head_ = other.last_ =
+                static_cast<pointer>(detail::getBufferAddress(&other));
 
             return *this;
         }
@@ -205,7 +192,7 @@ class SmallVectorImpl {
 
  protected:
     SmallVectorImpl(int n) noexcept
-        : first_(reinterpret_cast<pointer>(getFirstSmallElement())),
+        : first_(reinterpret_cast<pointer>(detail::getBufferAddress(this))),
           last_(first_ + n), head_(first_) {}
 
     SmallVectorImpl() = delete;
@@ -230,22 +217,6 @@ class SmallVectorImpl {
     pointer last_ = nullptr;
     pointer head_ = nullptr;
 
-    static constexpr std::uint64_t nextPowerOfTwo(std::uint64_t n) {
-        n |= (n >> 1);
-        n |= (n >> 2);
-        n |= (n >> 4);
-        n |= (n >> 8);
-        n |= (n >> 16);
-        n |= (n >> 32);
-        return n + 1;
-    }
-
-    static void* safeMalloc(std::size_t size) {
-        void* data = std::malloc(size);
-        if (data == nullptr) throw std::bad_alloc();
-        return data;
-    }
-
     template <typename InputIterator, typename ForwardIterator>
     static void uninitializedMove(InputIterator first, InputIterator last,
                                   ForwardIterator dest) {
@@ -263,21 +234,11 @@ class SmallVectorImpl {
         emplaceBack(value);
     }
 
-    // Returns a pointer to the first element of the inline buffer by
-    // calculating the offset from the this pointer and the buffer member.
-    void* getFirstSmallElement() const {
-        std::size_t offset = reinterpret_cast<std::size_t>(
-            &(reinterpret_cast<detail::SmallVectorAlignment<T>*>(0)->buffer));
-
-        return const_cast<void*>(reinterpret_cast<const void*>(
-            reinterpret_cast<const char*>(this) + offset));
-    }
-
     void resize(int sizeHint) {
-        int powerOfTwo = static_cast<int>(nextPowerOfTwo(capacity()));
+        int powerOfTwo = static_cast<int>(detail::nextPowerOfTwo(capacity()));
         int newSize = std::max(sizeHint, powerOfTwo);
 
-        void* dest = safeMalloc(sizeof(value_type) * newSize);
+        void* dest = detail::safeMalloc(sizeof(value_type) * newSize);
         pointer newFirst = static_cast<pointer>(dest);
 
         uninitializedRelocate(newFirst);
@@ -330,20 +291,9 @@ class SmallVectorImpl {
     }
 };
 
-template <typename T, int N>
-struct SmallVectorStorage {
-    typename std::aligned_storage<sizeof(T), alignof(T)>::type buffer[N];
-};
-
-// SmallVectorStorage<T, 0> has to be aligned as if it contained an internal
-// buffer so that the pointer arithmetic in
-// SmallVectorImpl<T>::getFirstSmallElement() will work.
-template <typename T>
-struct alignas(alignof(T)) SmallVectorStorage<T, 0> {};
-
 template <typename T, int N = 4>
 class SmallVector : public SmallVectorImpl<T>,
-                    private SmallVectorStorage<T, N> {
+                    private detail::AlignedStorageBase<T, N> {
     static_assert(N >= 0,
                   "SmallVector<T, N> requires N to be greater or equal to 0.");
 
