@@ -17,20 +17,11 @@
 #include "DenseSetTraits.hpp"
 #include "Utility.hpp"
 
-#include <utility>
-#include <initializer_list>
 #include <cstddef>
+#include <initializer_list>
+#include <utility>
 
 namespace cfds {
-namespace detail {
-
-template <typename T>
-struct SmallDenseSetAlignment {
-    T impl;
-    typename std::aligned_storage<sizeof(T), alignof(T)>::type buffer;
-};
-
-} // namespace detail
 
 template <typename T, typename Traits>
 class SmallDenseSetImpl {
@@ -71,14 +62,15 @@ class SmallDenseSetImpl {
 template <typename T, int N, typename Traits = DenseSetTraits<T>>
 class SmallDenseSet : public SmallDenseSetImpl<T, Traits>,
                       private detail::AlignedStorageBase<T, N> {
-    static_assert(N >= 0 && isPowerOfTwo(N),
+    static_assert(N >= 0 && SmallDenseSetImpl<T, Traits>::isPowerOfTwo(N),
                   "SmallDenseSet<T, N, Traits> requires N to be a power of two "
                   "or 0.");
 
  public:
-    SmallDenseSet() : SmallDenseSetImpl(N) {}
+    SmallDenseSet() : SmallDenseSetImpl<T, Traits>(N) {}
 
     SmallDenseSet(std::initializer_list<T> init) : SmallDenseSet() {
+        (void)init;
         // TODO ...
     }
 };

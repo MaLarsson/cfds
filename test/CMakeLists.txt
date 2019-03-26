@@ -31,7 +31,7 @@ add_subdirectory(${CATCH2_DIR} ${CATCH2_DIR} EXCLUDE_FROM_ALL)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CATCH2_DIR}/contrib")
 
 # Add check target
-add_executable(run_test EXCLUDE_FROM_ALL main.cpp test.cpp traits.cpp)
+add_executable(run_test EXCLUDE_FROM_ALL main.cpp test.cpp traits.cpp utility.cpp)
 
 if (NOT MSVC)
     if (SMALL_VECTOR_ENABLE_ASAN)

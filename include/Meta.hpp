@@ -60,9 +60,9 @@ namespace detail {
     template <typename T, typename Ret, typename... Args>                      \
     struct name<T, Ret(Args...)> {                                             \
      private:                                                                  \
-        template <typename>                                                    \
+        template <typename U = T>                                              \
         static constexpr auto check(PriorityTag<1>) ->                         \
-            typename std::is_same<decltype(T::fn(std::declval<Args>()...)),    \
+            typename std::is_same<decltype(U::fn(std::declval<Args>()...)),    \
                                   Ret>::type;                                  \
                                                                                \
         template <typename>                                                    \
