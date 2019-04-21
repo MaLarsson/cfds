@@ -39,38 +39,3 @@ TEST_CASE("Check if SmallVector is small", "[SmallVector]") {
 
     CHECK_FALSE(v3.isSmall());
 }
-
-
-////////////////////////////////////////////////////////////////////////////////
-// Testing bitwise operators
-
-#include <functional>
-#include <string>
-#include <iostream>
-
-TEST_CASE("hash stuff", "") {
-    std::string str{"string"};
-    std::hash<std::string> string_hasher{};
-
-    std::size_t hash = string_hasher(str);
-
-    int size = 1024;
-    std::size_t bitmask = static_cast<std::size_t>(size) - 1;
-
-    std::size_t masked_hash = hash & bitmask;
-    int slot = static_cast<int>(masked_hash);
-
-    std::cout << hash << ' ' << slot << '\n';
-
-    CHECK(slot < size);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// DenseSet tests
-
-#include <SmallDenseSet.hpp>
-
-TEST_CASE("DenseSet", "") {
-    cfds::SmallDenseSet<int, 0> set1{1, 2};
-    cfds::SmallDenseSet<std::string, 0> set2{"hello world"};
-}
