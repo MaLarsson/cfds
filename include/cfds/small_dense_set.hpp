@@ -44,7 +44,7 @@ class small_dense_set_impl {
  protected:
     small_dense_set_impl(int n) noexcept
         : m_buckets(reinterpret_cast<pointer>(detail::get_buffer_address(this))),
-          size_(n) {}
+          m_size(n) {}
 
     small_dense_set_impl() = delete;
     small_dense_set_impl(const small_dense_set_impl&) = delete;
@@ -59,7 +59,7 @@ class small_dense_set_impl {
     int m_size = 0;
 };
 
-template <typename T, int N, typename Traits = DenseSetTraits<T>>
+template <typename T, int N, typename Traits = dense_set_traits<T>>
 class small_dense_set : public small_dense_set_impl<T, Traits>,
                         private detail::aligned_storage_base<T, N> {
     static_assert(N >= 0 && small_dense_set_impl<T, Traits>::is_power_of_two(N),

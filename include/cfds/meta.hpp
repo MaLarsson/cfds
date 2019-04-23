@@ -25,7 +25,7 @@ auto is_trivially_relocatable_impl(priority_tag<1>)
 template <typename T>
 auto is_trivially_relocatable_impl(priority_tag<0>)
     -> bool_constant<std::is_trivially_move_constructible<T>::value &&
-                     std::is_trivially_destructible<T>::value>{};
+                     std::is_trivially_destructible<T>::value>;
 
 } // namespace detail
 
