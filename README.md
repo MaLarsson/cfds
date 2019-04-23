@@ -3,23 +3,23 @@ Efficient and cache friendly data structures.
 
 ## Overview
 ```cpp
-#include <SmallVector.hpp>
+#include <cfds/small_vector.hpp>
 #include <memory>
 
 int main() {
-    // Create vector of std::unique_ptr of ints with stack buffer of 4 elements.
-    cfds::SmallVector<std::unique_ptr<int>, 4> v{1, 2, 3, 4};
-    
+    // Create vector of std::unique_ptr of int with stack buffer of 4 elements.
+    cfds::small_vector<std::unique_ptr<int>, 4> v{1, 2, 3, 4};
+
     // Allocates space for 8 elements and relocates elements with std::memcpy.
-    // meta::IsTriviallyRelocatable<T>::value will be used to determine if
+    // meta::is_trivially_relocatable<T>::value will be used to determine if
     // std::memcpy or construct/destroy will be used for the relocation.
-    v.append(std::make_unique<int>(5));
+    v.push_back(std::make_unique<int>(5));
 }
 ```
 
 ## Building
 The library is a header only library so there is nothing to build in order to use the library in your own projects.
-All that is needed is to copy the contents on the include folder into your projects include folder.
+All that is needed is to copy the contents of the include folder into your projects include folder.
 
 ### Unit Tests
 If you want to build and run the unit tests locally a recent version of cmake and a C++11 conforming compiler is needed. The test framework [Catch2](https://github.com/catchorg/Catch2) will be downloaded during the cmake configuration step.
