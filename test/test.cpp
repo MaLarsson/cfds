@@ -1,8 +1,8 @@
-#include <cfds/small_vector.hpp>
 #include <catch2/catch.hpp>
+#include <cfds/small_vector.hpp>
 #include <type_traits>
 
-TEST_CASE("construction of small_vector_header",
+TEST_CASE("Construction of small_vector_header",
           "[small_vector_header, construction]") {
     using T = cfds::small_vector_header<int>;
 
@@ -34,7 +34,7 @@ TEST_CASE("Check if small_vector is small", "[small_vector]") {
     CHECK_FALSE(v2.is_small());
     CHECK(v3.is_small());
 
-    v3.append(1);
+    v3.emplace_back(1);
 
     CHECK_FALSE(v3.is_small());
 }

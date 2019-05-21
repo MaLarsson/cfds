@@ -69,11 +69,11 @@ class small_vector_header {
         return *(m_head - 1);
     }
 
-    void append(const value_type& value) {
-        append_impl(value, std::is_trivially_copyable<T>::type);
+    void push_back(const value_type& value) {
+        push_back_impl(value, std::is_trivially_copyable<T>::type);
     }
 
-    void append(value_type&& value) { emplace_back(std::move(value)); }
+    void push_back(value_type&& value) { emplace_back(std::move(value)); }
 
     value_type& back() { return *(m_head - 1); }
     const value_type& back() const { return *(m_head - 1); }
@@ -225,12 +225,12 @@ class small_vector_header {
     }
 
     // Use memcpy instread of placement new when T is trivially copyable.
-    void append_impl(const value_type& value, std::true_type) {
+    void push_back_impl(const value_type& value, std::true_type) {
         if (m_head == m_last) resize(capacity() + 1);
         std::memcpy(m_head++, std::addressof(value), sizeof(value_type));
     }
 
-    void append_impl(const value_type& value, std::false_type) {
+    void push_back_impl(const value_type& value, std::false_type) {
         emplace_back(value);
     }
 
