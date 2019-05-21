@@ -78,6 +78,9 @@ class small_vector_header {
     value_type& back() { return *(m_head - 1); }
     const value_type& back() const { return *(m_head - 1); }
 
+    value_type& front() { return *m_first; }
+    const value_type& front() const { return *m_first; }
+
     value_type& operator[](int index) { return *(m_first + index); }
     const value_type& operator[](int index) const { return *(m_first + index); }
 

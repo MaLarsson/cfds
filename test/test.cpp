@@ -38,3 +38,27 @@ TEST_CASE("Check if small_vector is small", "[small_vector]") {
 
     CHECK_FALSE(v3.is_small());
 }
+
+TEST_CASE("Get first element with front", "[]") {
+    cfds::small_vector<int, 0> v{1, 2, 3, 4};
+
+    CHECK(v.front() == 1);
+}
+
+TEST_CASE("Modify through front and back", "[]") {
+    cfds::small_vector<int, 0> v{1, 2, 3, 4};
+
+    CHECK(v.front() == 1);
+    CHECK(v.back() == 4);
+
+    v.front() = 10;
+    v.back() = 14;
+
+    CHECK(v.front() == 10);
+    CHECK(v.back() == 14);
+
+    CHECK(v.at(0) == 10);
+    CHECK(v.at(1) == 2);
+    CHECK(v.at(2) == 3);
+    CHECK(v.at(3) == 14);
+}
