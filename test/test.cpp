@@ -137,3 +137,16 @@ TEST_CASE("Emplace in middle of small_vector", "[small_vector]") {
     CHECK(v[3] == 2.5);
     CHECK(v[4] == 3.0);
 }
+
+TEST_CASE("Emplace with non-trivial type", "[small_vector]") {
+    cfds::small_vector<std::string> v{"aa", "bb"};
+
+    auto iter = v.emplace(std::begin(v) + 1, "ab");
+
+    CHECK(*iter == "ab");
+    CHECK(iter == std::begin(v) + 1);
+
+    CHECK(v[0] == "aa");
+    CHECK(v[1] == "ab");
+    CHECK(v[2] == "bb");
+}

@@ -77,29 +77,31 @@ class small_vector_header {
 
     template <typename... Args>
     iterator emplace(const_iterator pos, Args&&... args) {
-	int index = static_cast<int>(pos - m_first);
+        int index = static_cast<int>(pos - m_first);
 
-	if (m_head == m_last) {
-            int size = static_cast<int>(detail::next_power_of_two(capacity()));
-            void* dest = detail::safe_malloc(sizeof(value_type) * size);
+        if (m_head == m_last) {
+            int cap = static_cast<int>(detail::next_power_of_two(capacity()));
+            void* dest = detail::safe_malloc(sizeof(value_type) * cap);
             pointer new_first = static_cast<pointer>(dest);
 
-	    uninitialized_relocate(m_first, pos, new_first);
+            uninitialized_relocate(m_first, pos, new_first);
             uninitialized_relocate(pos, m_head, new_first + index + 1);
 
             ::new (new_first + index) value_type(std::forward<Args>(args)...);
 
+            if (!is_small()) std::free(m_first);
+
             m_first = new_first;
             m_head = new_first + (pos - m_first) + 1;
-	    m_last = new_first + size;
+            m_last = new_first + cap;
         } else {
-	    iterator iter = const_cast<iterator>(pos);
+            iterator iter = const_cast<iterator>(pos);
 
             shift_data(pos, m_head, iter + 1);
-	    ++m_head;
+            ++m_head;
 
             ::new (iter) value_type(std::forward<Args>(args)...);
-	}
+        }
 
         return &m_first[index];
     }
@@ -282,12 +284,26 @@ class small_vector_header {
         m_first = new_first;
     }
 
-    // TODO: only use std::memmove if T is trivially relocatable, same rules as
-    // uninitialized_relocate.
+    // Shift using std::memmove if T is trivially relocatable.
     template <typename U = T>
-    void shift_data(const_iterator first, const_iterator last,
-                    iterator dest) noexcept {
+    typename std::enable_if<meta::is_trivially_relocatable<U>::value>::type
+    shift_data(const_iterator first, const_iterator last,
+               iterator dest) noexcept {
         std::memmove(dest, first, sizeof(value_type) * (last - first));
+    }
+
+    // Shift by calling constructor and destructor as a pair.
+    template <typename U = T>
+    typename std::enable_if<!meta::is_trivially_relocatable<U>::value>::type
+    shift_data(const_iterator first, const_iterator last,
+               iterator dest) noexcept {
+        const_reverse_iterator rbegin(last);
+        const_reverse_iterator rend(first);
+
+        for (; rbegin != rend; ++rbegin, ++dest) {
+            ::new (dest) value_type(std::move(*rbegin));
+            rbegin->~value_type();
+        }
     }
 
     // Relocate using std::memcpy if T is trivially relocatable.
@@ -320,7 +336,7 @@ class small_vector_header {
     uninitialized_relocate(const_iterator first, const_iterator last,
                            iterator dest) {
         try {
-            for (auto begin = m_first; begin != m_head; ++begin, ++dest) {
+            for (auto begin = first; begin != last; ++begin, ++dest) {
                 ::new (dest) value_type(std::move(*begin));
             }
         } catch (...) {
@@ -328,7 +344,7 @@ class small_vector_header {
             throw;
         }
 
-        for (auto begin = m_first; begin != m_head; ++begin) {
+        for (auto begin = first; begin != last; ++begin) {
             begin->~value_type();
         }
     }
