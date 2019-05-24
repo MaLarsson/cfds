@@ -11,7 +11,7 @@ TEST_CASE("Construction of small_vector_header",
     CHECK_FALSE(std::is_move_constructible<T>::value);
 }
 
-TEST_CASE("Construct through iterators", "[]") {
+TEST_CASE("Construct through iterators", "[small_vector]") {
     cfds::small_vector<int, 8> from{1, 2, 3, 4, 5, 6, 7, 8};
     cfds::small_vector<int, 4> to(std::begin(from), std::end(from));
 
@@ -63,7 +63,7 @@ TEST_CASE("Check if small_vector is small", "[small_vector]") {
     CHECK_FALSE(v3.is_small());
 }
 
-TEST_CASE("Modify small_vector through small_vector_header&", "[]") {
+TEST_CASE("Modify small_vector through small_vector_header&", "[small_vector]") {
     cfds::small_vector<int, 4> v{1};
 
     auto fn = [](cfds::small_vector_header<int>& ref, int number) {
@@ -79,13 +79,13 @@ TEST_CASE("Modify small_vector through small_vector_header&", "[]") {
     CHECK(v.back() == 2);
 }
 
-TEST_CASE("Get first element with front", "[]") {
+TEST_CASE("Get first element with front", "[small_vector]") {
     cfds::small_vector<int, 0> v{1, 2, 3, 4};
 
     CHECK(v.front() == 1);
 }
 
-TEST_CASE("Modify through front and back", "[]") {
+TEST_CASE("Modify through front and back", "[small_vector]") {
     cfds::small_vector<int, 0> v{1, 2, 3, 4};
 
     CHECK(v.front() == 1);
@@ -101,4 +101,39 @@ TEST_CASE("Modify through front and back", "[]") {
     CHECK(v.at(1) == 2);
     CHECK(v.at(2) == 3);
     CHECK(v.at(3) == 14);
+}
+
+TEST_CASE("Access elements through data", "[small_vector]") {
+    cfds::small_vector<int> v{1, 2, 3, 4};
+    int* data = v.data();
+
+    CHECK(data[0] == 1);
+    CHECK(data[1] == 2);
+    CHECK(data[2] == 3);
+    CHECK(data[3] == 4);
+}
+
+TEST_CASE("Emplace in middle of small_vector", "[small_vector]") {
+    cfds::small_vector<double> v{1.0, 2.0, 3.0};
+
+    auto iter = v.emplace(std::begin(v) + 1, 1.5);
+
+    CHECK(*iter == 1.5);
+    CHECK(iter == std::begin(v) + 1);
+
+    CHECK(v[0] == 1.0);
+    CHECK(v[1] == 1.5);
+    CHECK(v[2] == 2.0);
+    CHECK(v[3] == 3.0);
+
+    auto iter2 = v.emplace(std::begin(v) + 3, 2.5);
+
+    CHECK(*iter2 == 2.5);
+    CHECK(iter2 == std::begin(v) + 3);
+
+    CHECK(v[0] == 1.0);
+    CHECK(v[1] == 1.5);
+    CHECK(v[2] == 2.0);
+    CHECK(v[3] == 2.5);
+    CHECK(v[4] == 3.0);
 }

@@ -75,6 +75,35 @@ class small_vector_header {
 
     void push_back(value_type&& value) { emplace_back(std::move(value)); }
 
+    template <typename... Args>
+    iterator emplace(const_iterator pos, Args&&... args) {
+	int index = static_cast<int>(pos - m_first);
+
+	if (m_head == m_last) {
+            int size = static_cast<int>(detail::next_power_of_two(capacity()));
+            void* dest = detail::safe_malloc(sizeof(value_type) * size);
+            pointer new_first = static_cast<pointer>(dest);
+
+	    uninitialized_relocate(m_first, pos, new_first);
+            uninitialized_relocate(pos, m_head, new_first + index + 1);
+
+            ::new (new_first + index) value_type(std::forward<Args>(args)...);
+
+            m_first = new_first;
+            m_head = new_first + (pos - m_first) + 1;
+	    m_last = new_first + size;
+        } else {
+	    iterator iter = const_cast<iterator>(pos);
+
+            shift_data(pos, m_head, iter + 1);
+	    ++m_head;
+
+            ::new (iter) value_type(std::forward<Args>(args)...);
+	}
+
+        return &m_first[index];
+    }
+
     value_type& back() { return *(m_head - 1); }
     const value_type& back() const { return *(m_head - 1); }
 
@@ -244,7 +273,7 @@ class small_vector_header {
         void* dest = detail::safe_malloc(sizeof(value_type) * new_size);
         pointer new_first = static_cast<pointer>(dest);
 
-        uninitialized_relocate(new_first);
+        uninitialized_relocate(m_first, m_head, new_first);
 
         if (!is_small()) std::free(m_first);
 
@@ -253,20 +282,30 @@ class small_vector_header {
         m_first = new_first;
     }
 
+    // TODO: only use std::memmove if T is trivially relocatable, same rules as
+    // uninitialized_relocate.
+    template <typename U = T>
+    void shift_data(const_iterator first, const_iterator last,
+                    iterator dest) noexcept {
+        std::memmove(dest, first, sizeof(value_type) * (last - first));
+    }
+
     // Relocate using std::memcpy if T is trivially relocatable.
-    template <typename U = T, typename ForwardIterator>
+    template <typename U = T>
     typename std::enable_if<meta::is_trivially_relocatable<U>::value>::type
-    uninitialized_relocate(ForwardIterator dest) noexcept {
-        std::memcpy(dest, m_first, sizeof(value_type) * size());
+    uninitialized_relocate(const_iterator first, const_iterator last,
+                           iterator dest) noexcept {
+        std::memcpy(dest, first, sizeof(value_type) * (last - first));
     }
 
     // Relocate by calling constructor and destructor as a pair since there is
     // no risk of the constructor throwing.
-    template <typename U = T, typename ForwardIterator>
+    template <typename U = T>
     typename std::enable_if<!meta::is_trivially_relocatable<U>::value &&
                             std::is_nothrow_move_constructible<U>::value>::type
-    uninitialized_relocate(ForwardIterator dest) noexcept {
-        for (auto begin = m_first; begin != m_head; ++begin, ++dest) {
+    uninitialized_relocate(const_iterator first, const_iterator last,
+                           iterator dest) noexcept {
+        for (auto begin = first; begin != last; ++begin, ++dest) {
             ::new (dest) value_type(std::move(*begin));
             begin->~value_type();
         }
@@ -275,10 +314,11 @@ class small_vector_header {
     // Relocate by calling the constructor and only after all elements have been
     // relocated can the destructor for the old shells be called since the
     // constructor might throw.
-    template <typename U = T, typename ForwardIterator>
+    template <typename U = T>
     typename std::enable_if<!meta::is_trivially_relocatable<U>::value &&
                             !std::is_nothrow_move_constructible<U>::value>::type
-    uninitialized_relocate(ForwardIterator dest) {
+    uninitialized_relocate(const_iterator first, const_iterator last,
+                           iterator dest) {
         try {
             for (auto begin = m_first; begin != m_head; ++begin, ++dest) {
                 ::new (dest) value_type(std::move(*begin));
