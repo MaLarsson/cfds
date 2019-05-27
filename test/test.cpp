@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <catch2/catch.hpp>
 #include <cfds/small_vector.hpp>
+#include <memory>
 #include <type_traits>
 
 TEST_CASE("Construction of small_vector_header",
@@ -152,10 +153,52 @@ TEST_CASE("Emplace with non-trivial type", "[small_vector]") {
     CHECK(v[2] == "bb");
 }
 
+TEST_CASE("Erase with same iterator", "[small_vector]") {
+    cfds::small_vector<std::string> v{"aa", "bb", "cc", "dd"};
+
+    CHECK(v.size() == 4);
+
+    auto iter = v.erase(std::begin(v), std::begin(v));
+
+    CHECK(iter == std::begin(v));
+    CHECK(v.size() == 4);
+    CHECK(v[0] == "aa");
+    CHECK(v[1] == "bb");
+    CHECK(v[2] == "cc");
+    CHECK(v[3] == "dd");
+}
+
 TEST_CASE("Erase elements for small_vector", "[small_vector]") {
     cfds::small_vector<std::string> v{"aa", "bb", "cc", "dd"};
 
-    v.erase(std::find(std::begin(v), std::end(v), "cc"));
+    CHECK(v.size() == 4);
 
-    // TODO ...
+    auto iter = v.erase(std::find(std::begin(v), std::end(v), "cc"));
+
+    CHECK(*iter == "dd");
+    CHECK(v.size() == 3);
+    CHECK(v[0] == "aa");
+    CHECK(v[1] == "bb");
+    CHECK(v[2] == "dd");
+}
+
+TEST_CASE("Remove last element with pop_back", "[small_vector]") {
+    std::shared_ptr<int> shared = std::make_shared<int>(1);
+    cfds::small_vector<std::shared_ptr<int>> shared_ptr_v{shared, shared};
+    cfds::small_vector<std::string> string_v{"aa", "bb"};
+    cfds::small_vector<int> int_v{1, 2};
+
+    CHECK(shared.use_count() == 3);
+    CHECK(shared_ptr_v.size() == 2);
+    CHECK(string_v.size() == 2);
+    CHECK(int_v.size() == 2);
+
+    shared_ptr_v.pop_back();
+    string_v.pop_back();
+    int_v.pop_back();
+
+    CHECK(shared.use_count() == 2);
+    CHECK(shared_ptr_v.size() == 1);
+    CHECK(string_v.size() == 1);
+    CHECK(int_v.size() == 1);
 }

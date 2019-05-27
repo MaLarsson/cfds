@@ -64,7 +64,7 @@ class small_vector_header {
 
     template <typename... Args>
     value_type& emplace_back(Args&&... args) {
-        if (m_head == m_last) resize(capacity() + 1);
+        if (m_head == m_last) grow(capacity() + 1);
         ::new (m_head++) value_type(std::forward<Args>(args)...);
         return *(m_head - 1);
     }
@@ -76,7 +76,8 @@ class small_vector_header {
     void push_back(value_type&& value) { emplace_back(std::move(value)); }
 
     void pop_back() {
-        // TODO ...
+        destroy_range(m_head - 1, m_head);
+        --m_head;
     }
 
     template <typename... Args>
@@ -84,9 +85,8 @@ class small_vector_header {
         int index = static_cast<int>(pos - m_first);
 
         if (m_head == m_last) {
-            int cap = static_cast<int>(detail::next_power_of_two(capacity()));
-            void* dest = detail::safe_malloc(sizeof(value_type) * cap);
-            pointer new_first = static_cast<pointer>(dest);
+            int new_cap = capacity() + 1;
+            pointer new_first = allocate(new_cap);
 
             uninitialized_relocate(m_first, pos, new_first);
             uninitialized_relocate(pos, m_head, new_first + index + 1);
@@ -97,7 +97,7 @@ class small_vector_header {
 
             m_first = new_first;
             m_head = new_first + (pos - m_first) + 1;
-            m_last = new_first + cap;
+            m_last = new_first + new_cap;
         } else {
             iterator iter = const_cast<iterator>(pos);
 
@@ -159,7 +159,7 @@ class small_vector_header {
     }
 
     void reserve(int size) {
-        if (size > capacity()) resize(size);
+        if (size > capacity()) grow(size);
     }
 
     pointer data() noexcept { return m_first; }
@@ -174,11 +174,20 @@ class small_vector_header {
         m_head = m_first;
     }
 
-    iterator erase(const_iterator pos) { return erase(pos, m_head); }
+    iterator erase(const_iterator pos) { return erase(pos, pos + 1); }
 
-    iterator erase(const_iterator pos, const_iterator last) {
-        // TODO ...
-        return nullptr;
+    iterator erase(const_iterator first, const_iterator last) {
+        if (first == last) return const_cast<iterator>(first);
+
+        destroy_range(first, last);
+
+        if (last != m_head) {
+            shift_data(last, m_head, const_cast<iterator>(first));
+        }
+
+        m_head -= last - first;
+
+        return const_cast<iterator>(first);
     }
 
     // Returns whether the inlined buffer is currently in use to store the data.
@@ -203,7 +212,7 @@ class small_vector_header {
 
         if (capacity() < other.size()) {
             clear();
-            resize(other.size());
+            grow(other.size());
         } else if (size() > 0) {
             std::copy(other.begin(), other.begin() + size(), begin());
         }
@@ -250,7 +259,7 @@ class small_vector_header {
 
         if (capacity() < other.size()) {
             clear();
-            resize(other.size());
+            grow(other.size());
         } else if (size() > 0) {
             std::move(other.begin(), other.begin() + size(), begin());
         }
@@ -276,11 +285,11 @@ class small_vector_header {
     // Turn destroy_range into a noop when T is trivially copyable.
     template <typename U = T>
     static typename std::enable_if<std::is_trivially_copyable<U>::value>::type
-    destroy_range(pointer, pointer) {}
+    destroy_range(const_iterator, const_iterator) {}
 
     template <typename U = T>
     static typename std::enable_if<!std::is_trivially_copyable<U>::value>::type
-    destroy_range(pointer begin, pointer end) {
+    destroy_range(const_iterator begin, const_iterator end) {
         for (; begin != end; ++begin) {
             begin->~value_type();
         }
@@ -300,7 +309,7 @@ class small_vector_header {
 
     // Use memcpy instread of placement new when T is trivially copyable.
     void push_back_impl(const value_type& value, std::true_type) {
-        if (m_head == m_last) resize(capacity() + 1);
+        if (m_head == m_last) grow(capacity() + 1);
         std::memcpy(m_head++, std::addressof(value), sizeof(value_type));
     }
 
@@ -308,18 +317,25 @@ class small_vector_header {
         emplace_back(value);
     }
 
-    void resize(int size_hint) {
+    // Allocates a new chunk of memory based on the size_hint and returns a
+    // pointer to the beginning of the newly allocated chunk. The size of the
+    // newly allocated memory is put into the size_hint.
+    pointer allocate(int& size_hint) {
         int next_pow = static_cast<int>(detail::next_power_of_two(capacity()));
-        int new_size = std::max(size_hint, next_pow);
+        size_hint = std::max(size_hint, next_pow);
 
-        void* dest = detail::safe_malloc(sizeof(value_type) * new_size);
-        pointer new_first = static_cast<pointer>(dest);
+        return static_cast<pointer>(
+            detail::safe_malloc(sizeof(value_type) * size_hint));
+    }
+
+    void grow(int size_hint) {
+        pointer new_first = allocate(size_hint);
 
         uninitialized_relocate(m_first, m_head, new_first);
 
         if (!is_small()) std::free(m_first);
 
-        m_last = new_first + new_size;
+        m_last = new_first + size_hint;
         m_head = new_first + size();
         m_first = new_first;
     }
@@ -336,6 +352,9 @@ class small_vector_header {
     template <typename U = T>
     typename std::enable_if<!meta::is_trivially_relocatable<U>::value>::type
     shift_data(const_iterator first, const_iterator last, iterator dest) {
+
+        // TODO: shifting to the left might destroy overlapping data!
+
         for (const_reverse_iterator rbegin(last);
              rbegin != const_reverse_iterator(first); ++rbegin, (void)++dest) {
             ::new (dest) value_type(std::move(*rbegin));
