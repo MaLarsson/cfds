@@ -75,6 +75,10 @@ class small_vector_header {
 
     void push_back(value_type&& value) { emplace_back(std::move(value)); }
 
+    void pop_back() {
+        // TODO ...
+    }
+
     template <typename... Args>
     iterator emplace(const_iterator pos, Args&&... args) {
         int index = static_cast<int>(pos - m_first);
@@ -104,6 +108,35 @@ class small_vector_header {
         }
 
         return &m_first[index];
+    }
+
+    iterator insert(const_iterator pos, const value_type& value) {
+        // TODO ...
+        return nullptr;
+    }
+
+    iterator insert(const_iterator pos, value_type&& value) {
+        // TODO ...
+        return nullptr;
+    }
+
+    iterator insert(const_iterator pos, size_type count,
+                    const value_type& value) {
+        // TODO ...
+        return nullptr;
+    }
+
+    template <typename InputIterator>
+    iterator insert(const_iterator pos, InputIterator first,
+                    InputIterator last) {
+        // TODO ...
+        return nullptr;
+    }
+
+    iterator insert(const_iterator pos,
+                    std::initializer_list<value_type> ilist) {
+        // TODO ...
+        return nullptr;
     }
 
     value_type& back() { return *(m_head - 1); }
@@ -139,6 +172,13 @@ class small_vector_header {
     void clear() {
         destroy_range(m_first, m_head);
         m_head = m_first;
+    }
+
+    iterator erase(const_iterator pos) { return erase(pos, m_head); }
+
+    iterator erase(const_iterator pos, const_iterator last) {
+        // TODO ...
+        return nullptr;
     }
 
     // Returns whether the inlined buffer is currently in use to store the data.
@@ -295,8 +335,7 @@ class small_vector_header {
     // Shift by calling constructor and destructor as a pair.
     template <typename U = T>
     typename std::enable_if<!meta::is_trivially_relocatable<U>::value>::type
-    shift_data(const_iterator first, const_iterator last,
-               iterator dest) noexcept {
+    shift_data(const_iterator first, const_iterator last, iterator dest) {
         for (const_reverse_iterator rbegin(last);
              rbegin != const_reverse_iterator(first); ++rbegin, (void)++dest) {
             ::new (dest) value_type(std::move(*rbegin));

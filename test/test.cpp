@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <catch2/catch.hpp>
 #include <cfds/small_vector.hpp>
 #include <type_traits>
@@ -149,4 +150,12 @@ TEST_CASE("Emplace with non-trivial type", "[small_vector]") {
     CHECK(v[0] == "aa");
     CHECK(v[1] == "ab");
     CHECK(v[2] == "bb");
+}
+
+TEST_CASE("Erase elements for small_vector", "[small_vector]") {
+    cfds::small_vector<std::string> v{"aa", "bb", "cc", "dd"};
+
+    v.erase(std::find(std::begin(v), std::end(v), "cc"));
+
+    // TODO ...
 }
