@@ -297,10 +297,8 @@ class small_vector_header {
     typename std::enable_if<!meta::is_trivially_relocatable<U>::value>::type
     shift_data(const_iterator first, const_iterator last,
                iterator dest) noexcept {
-        const_reverse_iterator rbegin(last);
-        const_reverse_iterator rend(first);
-
-        for (; rbegin != rend; ++rbegin, ++dest) {
+        for (const_reverse_iterator rbegin(last);
+             rbegin != const_reverse_iterator(first); ++rbegin, (void)++dest) {
             ::new (dest) value_type(std::move(*rbegin));
             rbegin->~value_type();
         }
@@ -321,7 +319,7 @@ class small_vector_header {
                             std::is_nothrow_move_constructible<U>::value>::type
     uninitialized_relocate(const_iterator first, const_iterator last,
                            iterator dest) noexcept {
-        for (auto begin = first; begin != last; ++begin, ++dest) {
+        for (auto begin = first; begin != last; ++begin, (void)++dest) {
             ::new (dest) value_type(std::move(*begin));
             begin->~value_type();
         }
@@ -336,7 +334,7 @@ class small_vector_header {
     uninitialized_relocate(const_iterator first, const_iterator last,
                            iterator dest) {
         try {
-            for (auto begin = first; begin != last; ++begin, ++dest) {
+            for (auto begin = first; begin != last; ++begin, (void)++dest) {
                 ::new (dest) value_type(std::move(*begin));
             }
         } catch (...) {
