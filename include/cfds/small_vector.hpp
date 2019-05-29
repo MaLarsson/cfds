@@ -113,9 +113,12 @@ class small_vector_header {
         return iter;
     }
 
-    template <typename InputIterator>
-    iterator insert(const_iterator pos, InputIterator first,
-                    InputIterator last) {
+    // TODO: make overload for InputIterator, cant use std::distance with input
+    // iterators since they are single pass. Calculating distance will
+    // invalidate the iterators!
+    template <typename ForwardIterator>
+    iterator insert(const_iterator pos, ForwardIterator first,
+                    ForwardIterator last) {
         int count = std::distance(first, last);
         iterator iter = make_space(pos, count);
 
