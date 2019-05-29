@@ -82,61 +82,53 @@ class small_vector_header {
 
     template <typename... Args>
     iterator emplace(const_iterator pos, Args&&... args) {
-        int index = static_cast<int>(pos - m_first);
-
-        if (m_head == m_last) {
-            int new_cap = capacity() + 1;
-            pointer new_first = allocate(new_cap);
-
-            uninitialized_relocate(m_first, pos, new_first);
-            uninitialized_relocate(pos, m_head, new_first + index + 1);
-
-            ::new (new_first + index) value_type(std::forward<Args>(args)...);
-
-            if (!is_small()) std::free(m_first);
-
-            m_first = new_first;
-            m_head = new_first + (pos - m_first) + 1;
-            m_last = new_first + new_cap;
-        } else {
-            iterator iter = const_cast<iterator>(pos);
-
-            shift_data(pos, m_head, iter + 1);
-            ++m_head;
-
-            ::new (iter) value_type(std::forward<Args>(args)...);
-        }
-
-        return &m_first[index];
+        iterator iter = make_space(pos, 1);
+        ::new (iter) value_type(std::forward<Args>(args)...);
+        return iter;
     }
 
     iterator insert(const_iterator pos, const value_type& value) {
-        // TODO ...
-        return nullptr;
+        iterator iter = make_space(pos, 1);
+
+        // TODO: not all types are memcpyable! use a insert_impl which take a
+        // std::is_trivially_copyable<T>::type
+        std::memcpy(iter, std::addressof(value), sizeof(value_type));
+
+        return iter;
     }
 
     iterator insert(const_iterator pos, value_type&& value) {
-        // TODO ...
-        return nullptr;
+        return emplace(pos, std::move(value));
     }
 
     iterator insert(const_iterator pos, size_type count,
                     const value_type& value) {
-        // TODO ...
-        return nullptr;
+        iterator iter = make_space(pos, count);
+
+        // TODO: not all types are memcpyable!
+        for (size_type i = 0; i < count; ++i) {
+            std::memcpy(iter + i, std::addressof(value), sizeof(value_type));
+        }
+
+        return iter;
     }
 
     template <typename InputIterator>
     iterator insert(const_iterator pos, InputIterator first,
                     InputIterator last) {
-        // TODO ...
-        return nullptr;
+        iterator iter = make_space(pos, count);
+
+        // TODO: not all types are memcpyable!
+        for (size_type i = 0; i < count; ++i, (void)++first) {
+            std::memcpy(iter + i, first, sizeof(value_type));
+        }
+
+        return iter;
     }
 
     iterator insert(const_iterator pos,
                     std::initializer_list<value_type> ilist) {
-        // TODO ...
-        return nullptr;
+        return insert(pos, std::begin(ilist), std::end(ilist));
     }
 
     value_type& back() { return *(m_head - 1); }
@@ -317,6 +309,33 @@ class small_vector_header {
         emplace_back(value);
     }
 
+    // Shifts around data to be able to construct count elements into the
+    // small_vector starting at pos. This function may reallocate so an iterator
+    // to the position in which elements can be constructed is returned.
+    iterator make_space(const_iterator pos, size_type count) {
+        int index = static_cast<int>(pos - m_first);
+        int new_size = size() + count;
+
+        if (new_size > capacity()) {
+            int new_cap = capacity() + count;
+            pointer new_first = allocate(new_cap);
+
+            uninitialized_relocate(m_first, pos, new_first);
+            uninitialized_relocate(pos, m_head, new_first + index + 1);
+
+            if (!is_small()) std::free(m_first);
+
+            m_first = new_first;
+            m_head = new_first + new_size;
+            m_last = new_first + new_cap;
+        } else {
+            shift_data(pos, m_head, &m_first[index] + 1);
+            ++m_head;
+        }
+
+        return &m_first[index];
+    }
+
     // Allocates a new chunk of memory based on the size_hint and returns a
     // pointer to the beginning of the newly allocated chunk. The size of the
     // newly allocated memory is put into the size_hint.
@@ -352,13 +371,18 @@ class small_vector_header {
     template <typename U = T>
     typename std::enable_if<!meta::is_trivially_relocatable<U>::value>::type
     shift_data(const_iterator first, const_iterator last, iterator dest) {
-
-        // TODO: shifting to the left might destroy overlapping data!
-
-        for (const_reverse_iterator rbegin(last);
-             rbegin != const_reverse_iterator(first); ++rbegin, (void)++dest) {
-            ::new (dest) value_type(std::move(*rbegin));
-            rbegin->~value_type();
+        if (dest < first) {
+            for (auto begin = first; begin != last; ++begin, (void)++dest) {
+                ::new (dest) value_type(std::move(*begin));
+                begin->~value_type();
+            }
+        } else {
+            for (const_reverse_iterator rbegin(last);
+                 rbegin != const_reverse_iterator(first);
+                 ++rbegin, (void)++dest) {
+                ::new (dest) value_type(std::move(*rbegin));
+                rbegin->~value_type();
+            }
         }
     }
 

@@ -65,7 +65,8 @@ TEST_CASE("Check if small_vector is small", "[small_vector]") {
     CHECK_FALSE(v3.is_small());
 }
 
-TEST_CASE("Modify small_vector through small_vector_header&", "[small_vector]") {
+TEST_CASE("Modify small_vector through small_vector_header&",
+          "[small_vector]") {
     cfds::small_vector<int, 4> v{1};
 
     auto fn = [](cfds::small_vector_header<int>& ref, int number) {
@@ -140,10 +141,33 @@ TEST_CASE("Emplace in middle of small_vector", "[small_vector]") {
     CHECK(v[4] == 3.0);
 }
 
+TEST_CASE("Emplace overflow", "[small_vector]") {
+    cfds::small_vector<double> v{1.0, 2.0, 3.0, 4.0};
+
+    CHECK(v.size() == 4);
+    CHECK(v[0] == 1.0);
+    CHECK(v[1] == 2.0);
+    CHECK(v[2] == 3.0);
+    CHECK(v[3] == 4.0);
+
+    v.emplace(std::begin(v) + 1, 1.5);
+
+    CHECK(v.size() == 5);
+    CHECK(v[0] == 1.0);
+    CHECK(v[1] == 1.5);
+    CHECK(v[2] == 2.0);
+    CHECK(v[3] == 3.0);
+    CHECK(v[4] == 4.0);
+}
+
 TEST_CASE("Emplace with non-trivial type", "[small_vector]") {
     cfds::small_vector<std::string> v{"aa", "bb"};
 
+    CHECK(v.size() == 2);
+
     auto iter = v.emplace(std::begin(v) + 1, "ab");
+
+    CHECK(v.size() == 3);
 
     CHECK(*iter == "ab");
     CHECK(iter == std::begin(v) + 1);
@@ -201,4 +225,38 @@ TEST_CASE("Remove last element with pop_back", "[small_vector]") {
     CHECK(shared_ptr_v.size() == 1);
     CHECK(string_v.size() == 1);
     CHECK(int_v.size() == 1);
+}
+
+TEST_CASE("Insert elements into small_vector", "[small_vector]") {
+    cfds::small_vector<int> full_v{1, 2, 3, 4};
+    cfds::small_vector<int> v{4};
+
+    CHECK(full_v.size() == 4);
+    CHECK(full_v[0] == 1);
+    CHECK(full_v[1] == 2);
+    CHECK(full_v[2] == 3);
+    CHECK(full_v[3] == 4);
+
+    SECTION("Insert lvalue into full small_vector") {
+        int i = 0;
+        full_v.insert(std::begin(full_v), i);
+
+        CHECK(full_v.size() == 5);
+        CHECK(full_v[0] == 0);
+        CHECK(full_v[1] == 1);
+        CHECK(full_v[2] == 2);
+        CHECK(full_v[3] == 3);
+        CHECK(full_v[4] == 4);
+    }
+
+    SECTION("Insert rvalue into full small_vector") {
+        full_v.insert(std::begin(full_v), 0);
+
+        CHECK(full_v.size() == 5);
+        CHECK(full_v[0] == 0);
+        CHECK(full_v[1] == 1);
+        CHECK(full_v[2] == 2);
+        CHECK(full_v[3] == 3);
+        CHECK(full_v[4] == 4);
+    }
 }
