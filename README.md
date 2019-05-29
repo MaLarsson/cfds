@@ -11,8 +11,8 @@ int main() {
     cfds::small_vector<std::unique_ptr<int>, 4> v{1, 2, 3, 4};
 
     // Allocates space for 8 elements and relocates elements with std::memcpy.
-    // meta::is_trivially_relocatable<T>::value will be used to determine if
-    // std::memcpy or construct/destroy will be used for the relocation.
+    // cfds::meta::is_trivially_relocatable<T>::value will be used to determine
+    // if std::memcpy or construct/destroy will be used for the relocation.
     v.push_back(std::make_unique<int>(5));
 }
 ```

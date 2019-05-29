@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <utility>
 
+namespace cfds {
 namespace meta {
 
 template <bool B>
@@ -41,6 +42,12 @@ struct is_trivially_relocatable<std::shared_ptr<T>> : std::true_type {};
 
 template <typename T>
 struct is_trivially_relocatable<std::weak_ptr<T>> : std::true_type {};
+
+template <typename Iterator>
+struct is_input_iterator
+    : std::is_base_of<
+          std::input_iterator_tag,
+          typename std::iterator_traits<Iterator>::iterator_category> {};
 
 template <typename Iterator>
 struct is_forward_iterator
@@ -100,3 +107,4 @@ using has_compare =
                                      const typename T::value_type&)>;
 
 } // namespace meta
+} // namespace cfds

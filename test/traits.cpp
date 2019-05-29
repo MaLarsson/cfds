@@ -22,13 +22,17 @@ struct dense_set_traits<test::empty_struct> {
 TEST_CASE("HasFunctionX meta function", "[meta]") {
     using T = cfds::dense_set_traits<test::empty_struct>;
 
-    CHECK(meta::has_get_empty<T>::value);
-    CHECK_FALSE(meta::has_get_tombstone<T>::value);
-    CHECK_FALSE(meta::has_get_hash<T>::value);
-    CHECK(meta::has_compare<T>::value);
+    CHECK(::cfds::meta::has_get_empty<T>::value);
+    CHECK_FALSE(::cfds::meta::has_get_tombstone<T>::value);
+    CHECK_FALSE(::cfds::meta::has_get_hash<T>::value);
+    CHECK(::cfds::meta::has_compare<T>::value);
 
-    CHECK(std::is_same<meta::has_get_empty<T>::type, std::true_type>::value);
-    CHECK(std::is_same<meta::has_get_tombstone<T>::type, std::false_type>::value);
-    CHECK(std::is_same<meta::has_get_hash<T>::type, std::false_type>::value);
-    CHECK(std::is_same<meta::has_compare<T>::type, std::true_type>::value);
+    CHECK(std::is_same<::cfds::meta::has_get_empty<T>::type,
+                       std::true_type>::value);
+    CHECK(std::is_same<::cfds::meta::has_get_tombstone<T>::type,
+                       std::false_type>::value);
+    CHECK(std::is_same<::cfds::meta::has_get_hash<T>::type,
+                       std::false_type>::value);
+    CHECK(std::is_same<::cfds::meta::has_compare<T>::type,
+                       std::true_type>::value);
 }
