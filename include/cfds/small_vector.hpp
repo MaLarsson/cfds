@@ -116,6 +116,7 @@ class small_vector_header {
     template <typename InputIterator>
     iterator insert(const_iterator pos, InputIterator first,
                     InputIterator last) {
+        int count = std::distance(first, last);
         iterator iter = make_space(pos, count);
 
         // TODO: not all types are memcpyable!
