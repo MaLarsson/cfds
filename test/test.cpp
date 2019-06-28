@@ -1,7 +1,9 @@
 #include <algorithm>
 #include <catch2/catch.hpp>
 #include <cfds/small_vector.hpp>
+#include <iterator>
 #include <memory>
+#include <sstream>
 #include <type_traits>
 
 TEST_CASE("Construction of small_vector_header",
@@ -259,4 +261,32 @@ TEST_CASE("Insert elements into small_vector", "[small_vector]") {
         CHECK(full_v[3] == 3);
         CHECK(full_v[4] == 4);
     }
+}
+
+TEST_CASE("Insert elements with iterators", "[small_vector]") {
+    cfds::small_vector<int> v{1, 5};
+    cfds::small_vector<int> from{2, 3, 4};
+
+    v.insert(std::begin(v) + 1, std::begin(from), std::end(from));
+
+    CHECK(v.size() == 5);
+    CHECK(v[0] == 1);
+    CHECK(v[1] == 2);
+    CHECK(v[2] == 3);
+    CHECK(v[3] == 4);
+    CHECK(v[4] == 5);
+}
+
+TEST_CASE("Insert elements with input iterators", "[small_vector]") {
+    cfds::small_vector<char> v{'a', 'd'};
+    std::istringstream from("bc");
+
+    v.insert(std::begin(v) + 1, std::istreambuf_iterator<char>(from),
+             std::istreambuf_iterator<char>());
+
+    CHECK(v.size() == 4);
+    CHECK(v[0] == 'a');
+    CHECK(v[1] == 'b');
+    CHECK(v[2] == 'c');
+    CHECK(v[3] == 'd');
 }

@@ -11,6 +11,7 @@
 #pragma once
 
 #include "meta.hpp"
+#include "split_buffer.hpp"
 #include "utility.hpp"
 
 #include <algorithm>
@@ -122,9 +123,20 @@ class small_vector_header {
             !meta::is_forward_iterator<InputIterator>::value,
         iterator>::type
     insert(const_iterator pos, InputIterator first, InputIterator last) {
-        // TODO ...
+        int index = static_cast<int>(pos - m_first);
 
-        return nullptr;
+        detail::split_buffer<value_type> buffer;
+        buffer.construct_at_end(&m_first[index], m_head);
+        destroy_range(&m_first[index], m_head);
+        m_head = &m_first[index];
+
+        for (auto iter = first; iter != last; ++iter) {
+            push_back(*iter);
+        }
+
+        insert(m_head, buffer.begin(), buffer.end());
+
+        return &m_first[index];
     }
 
     template <typename ForwardIterator>
@@ -337,7 +349,7 @@ class small_vector_header {
             pointer new_first = allocate(new_cap);
 
             uninitialized_relocate(m_first, pos, new_first);
-            uninitialized_relocate(pos, m_head, new_first + index + 1);
+            uninitialized_relocate(pos, m_head, new_first + index + count);
 
             if (!is_small()) std::free(m_first);
 
@@ -345,7 +357,7 @@ class small_vector_header {
             m_head = new_first + new_size;
             m_last = new_first + new_cap;
         } else {
-            shift_data(pos, m_head, &m_first[index] + 1);
+            shift_data(pos, m_head, &m_first[index] + count);
             ++m_head;
         }
 
