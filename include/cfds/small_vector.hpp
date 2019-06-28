@@ -90,10 +90,7 @@ class small_vector_header {
 
     iterator insert(const_iterator pos, const value_type& value) {
         iterator iter = make_space(pos, 1);
-
-        // TODO: not all types are memcpyable! use a insert_impl which take a
-        // std::is_trivially_copyable<T>::type
-        std::memcpy(iter, std::addressof(value), sizeof(value_type));
+        insert_at_pos(iter, value);
 
         return iter;
     }
@@ -106,17 +103,16 @@ class small_vector_header {
                     const value_type& value) {
         iterator iter = make_space(pos, count);
 
-        // TODO: not all types are memcpyable!
         for (size_type i = 0; i < count; ++i) {
-            std::memcpy(iter + i, std::addressof(value), sizeof(value_type));
+            insert_at_pos(iter + i, value);
         }
 
         return iter;
     }
 
-    // TODO: make overload for InputIterator, cant use std::distance with input
-    // iterators since they are single pass. Calculating distance will
-    // invalidate the iterators!
+    // Overload of insert with iterators that has the iterator_category
+    // std::input_iterator_tag. Input iterators are single pass so we cant
+    // calculate the distance between first and last before insertion.
     template <typename InputIterator>
     typename std::enable_if<
         meta::is_input_iterator<InputIterator>::value &&
@@ -146,9 +142,8 @@ class small_vector_header {
         int count = std::distance(first, last);
         iterator iter = make_space(pos, count);
 
-        // TODO: not all types are memcpyable!
         for (size_type i = 0; i < count; ++i, (void)++first) {
-            std::memcpy(iter + i, first, sizeof(value_type));
+            insert_at_pos(iter + i, *first);
         }
 
         return iter;
@@ -325,6 +320,19 @@ class small_vector_header {
                                    ForwardIterator dest) {
         std::uninitialized_copy(std::make_move_iterator(first),
                                 std::make_move_iterator(last), dest);
+    }
+
+    // Use memcpy instread of placement new when T is trivially copyable.
+    template <typename U = T>
+    static typename std::enable_if<std::is_trivially_copyable<U>::value>::type
+    insert_at_pos(pointer pos, const value_type& value) {
+        std::memcpy(pos, std::addressof(value), sizeof(value_type));
+    }
+
+    template <typename U = T>
+    static typename std::enable_if<!std::is_trivially_copyable<U>::value>::type
+    insert_at_pos(pointer pos, const value_type& value) {
+        ::new (pos) value_type(value);
     }
 
     // Use memcpy instread of placement new when T is trivially copyable.
