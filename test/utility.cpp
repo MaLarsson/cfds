@@ -1,4 +1,3 @@
-#include <cfds/small_dense_set.hpp>
 #include <cfds/small_vector.hpp>
 #include <catch2/catch.hpp>
 
@@ -12,6 +11,4 @@ TEST_CASE("get_buffer_address return correct address", "[utility, address]") {
         CHECK(*addr == 1);
         CHECK(*(addr + 1) == 2);
     }
-
-    SECTION("get_buffer_address With SmallDenseSet") {}
 }
