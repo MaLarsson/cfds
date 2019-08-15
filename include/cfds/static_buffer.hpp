@@ -8,6 +8,7 @@
 #include "utility.hpp"
 
 #include <cstddef>
+#include <cstring>
 #include <iterator>
 #include <type_traits>
 #include <utility>
