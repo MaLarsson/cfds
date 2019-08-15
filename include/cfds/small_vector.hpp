@@ -11,7 +11,7 @@
 #pragma once
 
 #include "meta.hpp"
-#include "split_buffer.hpp"
+#include "static_buffer.hpp"
 #include "utility.hpp"
 
 #include <algorithm>
@@ -120,9 +120,8 @@ class small_vector_header {
         iterator>::type
     insert(const_iterator pos, InputIterator first, InputIterator last) {
         int index = static_cast<int>(pos - m_first);
+        detail::static_buffer<value_type> buffer(&m_first[index], m_head);
 
-        detail::split_buffer<value_type> buffer;
-        buffer.construct_at_end(&m_first[index], m_head);
         destroy_range(&m_first[index], m_head);
         m_head = &m_first[index];
 
