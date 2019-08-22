@@ -46,7 +46,7 @@ struct static_buffer {
         m_begin = static_cast<pointer>(data);
         m_end = m_begin;
 
-        construct_range(first, last, count);
+        construct_range(first, count);
     }
 
     ~static_buffer() {
@@ -78,16 +78,15 @@ struct static_buffer {
 
     template <typename ForwardIterator, typename U = T>
     typename std::enable_if<std::is_trivially_copyable<U>::value>::type
-    construct_range(ForwardIterator first, ForwardIterator last,
-                    std::size_t count) {
+    construct_range(ForwardIterator first, std::size_t count) {
         std::memcpy(m_end, first, sizeof(value_type) * count);
         m_end += count;
     }
 
     template <typename ForwardIterator, typename U = T>
     typename std::enable_if<!std::is_trivially_copyable<U>::value>::type
-    construct_range(ForwardIterator first, ForwardIterator last, std::size_t) {
-        for (; first != last; ++first) {
+    construct_range(ForwardIterator first, std::size_t count) {
+        for (std::size_t i = 0; i < count; ++i, (void)++first) {
             ::new (m_end) value_type(*first);
             ++m_end;
         }
