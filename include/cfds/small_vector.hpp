@@ -63,6 +63,19 @@ class small_vector_header {
     const_reverse_iterator rend() const { return reverse_iterator(m_first); }
     const_reverse_iterator crend() const { return reverse_iterator(m_first); }
 
+    void assign(size_type count, const value_type& value) {
+        // TODO ...
+    }
+
+    template <typename Iterator>
+    void assign(Iterator first, Iterator last) {
+        // TODO ...
+    }
+
+    void assign(std::initializer_list<T> ilist) {
+        // TODO ...
+    }
+
     template <typename... Args>
     value_type& emplace_back(Args&&... args) {
         if (m_head == m_last) grow(capacity() + 1);
@@ -79,6 +92,18 @@ class small_vector_header {
     void pop_back() {
         destroy_range(m_head - 1, m_head);
         --m_head;
+    }
+
+    void resize(size_type count) {
+        // TODO ...
+    }
+
+    void resize(size_type count, const value_type& value) {
+        // TODO ...
+    }
+
+    void swap(small_vector_header& other) {
+        // TODO ...
     }
 
     template <typename... Args>
@@ -179,9 +204,17 @@ class small_vector_header {
     pointer data() noexcept { return m_first; }
     const_pointer data() const noexcept { return m_first; }
 
-    int size() const { return m_head - m_first; }
-    int capacity() const { return m_last - m_first; }
-    bool empty() const { return m_first == m_head; }
+    size_type max_type() const noexcept {
+        // TODO ...
+    }
+
+    size_type size() const noexcept { return m_head - m_first; }
+    size_type capacity() const noexcept { return m_last - m_first; }
+    bool empty() const noexcept { return m_first == m_head; }
+
+    void shrink_to_fit() {
+        // TODO ...
+    }
 
     void clear() {
         destroy_range(m_first, m_head);
