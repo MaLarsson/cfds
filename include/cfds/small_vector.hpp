@@ -19,6 +19,7 @@
 #include <cstring>
 #include <initializer_list>
 #include <iterator>
+#include <limits>
 #include <memory>
 #include <new>
 #include <type_traits>
@@ -204,8 +205,9 @@ class small_vector_header {
     pointer data() noexcept { return m_first; }
     const_pointer data() const noexcept { return m_first; }
 
-    size_type max_type() const noexcept {
-        // TODO ...
+    size_type max_size() const noexcept {
+        return std::min<size_type>(std::numeric_limits<size_type>::max(),
+                                   std::numeric_limits<difference_type>::max());
     }
 
     size_type size() const noexcept { return m_head - m_first; }
