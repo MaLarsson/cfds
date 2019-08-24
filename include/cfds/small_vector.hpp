@@ -11,8 +11,9 @@
 #pragma once
 
 #include "meta.hpp"
-#include "static_buffer.hpp"
-#include "utility.hpp"
+
+#include "detail/static_buffer.hpp"
+#include "detail/utility.hpp"
 
 #include <algorithm>
 #include <cstddef>
