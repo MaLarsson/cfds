@@ -104,10 +104,10 @@ class small_vector_header {
         }
 
         if (count > size()) {
-            if (count > capacity()) grow(count);
+            reserve(count);
 
             for (int i = size(); i < count; ++i) {
-                emplace_back(T{});
+                emplace_back(value_type{});
             }
         }
     }
@@ -120,10 +120,10 @@ class small_vector_header {
         }
 
         if (count > size()) {
-            if (count > capacity()) grow(count);
+            reserve(count);
 
             for (int i = size(); i < count; ++i) {
-		push_back(value);
+                push_back(value);
             }
         }
     }
@@ -131,20 +131,20 @@ class small_vector_header {
     void swap(small_vector_header& other) {
         if (this == &other) return;
 
-	if (!is_small() && !other.is_small()) {
-	    using std::swap;
-	    swap(m_first, other.m_first);
-	    swap(m_last, other.m_last);
-	    swap(m_head, other.m_head);
-	    return;
-	}
+        if (!is_small() && !other.is_small()) {
+            using std::swap;
+            swap(m_first, other.m_first);
+            swap(m_last, other.m_last);
+            swap(m_head, other.m_head);
+            return;
+        }
 
         if (size() > other.size()) {
             slow_swap(*this, other);
             return;
         }
 
-	slow_swap(other, *this);
+        slow_swap(other, *this);
     }
 
     template <typename... Args>
@@ -591,15 +591,17 @@ class small_vector : public small_vector_header<T>,
                      ForwardIterator>::type first,
                  ForwardIterator last)
         : small_vector() {
-        this->reserve(last - first);
+        this->reserve(std::distance(first, last));
+
         for (; first != last; ++first) {
             this->emplace_back(*first);
         }
     }
 
-    small_vector(std::initializer_list<T> init) : small_vector() {
-        this->reserve(init.size());
-        for (auto& element : init) {
+    small_vector(std::initializer_list<T> ilist) : small_vector() {
+        this->reserve(ilist.size());
+
+        for (auto&& element : ilist) {
             this->emplace_back(element);
         }
     }
