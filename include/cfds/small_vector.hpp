@@ -635,42 +635,20 @@ class small_vector : public small_vector_header<T>,
         }
     }
 
-    small_vector(const small_vector& other) : small_vector() {
+    small_vector(const small_vector_header<T>& other) : small_vector() {
         if (!other.empty()) small_vector_header<T>::operator=(other);
     }
 
-    template <int N2>
-    small_vector(const small_vector<T, N2>& other) : small_vector() {
-        if (!other.empty()) small_vector_header<T>::operator=(other);
-    }
-
-    small_vector(small_vector&& other) : small_vector() {
+    small_vector(small_vector_header<T>&& other) : small_vector() {
         if (!other.empty()) small_vector_header<T>::operator=(std::move(other));
     }
 
-    template <int N2>
-    small_vector(small_vector<T, N2>&& other) : small_vector() {
-        if (!other.empty()) small_vector_header<T>::operator=(std::move(other));
-    }
-
-    small_vector& operator=(const small_vector& other) {
+    small_vector& operator=(const small_vector_header<T>& other) {
         small_vector_header<T>::operator=(other);
         return *this;
     }
 
-    template <int N2>
-    small_vector& operator=(const small_vector<T, N2>& other) {
-        small_vector_header<T>::operator=(other);
-        return *this;
-    }
-
-    small_vector& operator=(small_vector&& other) {
-        small_vector_header<T>::operator=(std::move(other));
-        return *this;
-    }
-
-    template <int N2>
-    small_vector& operator=(small_vector<T, N2>&& other) {
+    small_vector& operator=(small_vector_header<T>&& other) {
         small_vector_header<T>::operator=(std::move(other));
         return *this;
     }
