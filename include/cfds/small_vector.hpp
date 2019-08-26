@@ -105,7 +105,22 @@ class small_vector_header {
     }
 
     void swap(small_vector_header& other) {
-        // TODO ...
+        if (this == &other) return;
+
+	if (!is_small() && !other.is_small()) {
+	    using std::swap;
+	    swap(m_first, other.m_first);
+	    swap(m_last, other.m_last);
+	    swap(m_head, other.m_head);
+	    return;
+	}
+
+        if (size() > other.size()) {
+            slow_swap(*this, other);
+            return;
+        }
+
+	slow_swap(other, *this);
     }
 
     template <typename... Args>
@@ -350,6 +365,23 @@ class small_vector_header {
     pointer m_last = nullptr;
     pointer m_head = nullptr;
 
+    void slow_swap(small_vector_header& big, small_vector_header& small) {
+        if (big.size() > small.capacity()) small.grow(big.size());
+
+        size_type nr_shared = small.size();
+
+        for (size_type i = 0; i < nr_shared; ++i) {
+            using std::swap;
+            swap(big[i], small[i]);
+        }
+
+        uninitialized_relocate(big.m_first + nr_shared, big.m_head,
+                               small.m_first + nr_shared);
+
+        small.m_head = small.m_first + big.size();
+        big.m_head = big.m_first + nr_shared;
+    }
+
     template <typename InputIterator, typename ForwardIterator>
     static void uninitialized_move(InputIterator first, InputIterator last,
                                    ForwardIterator dest) {
@@ -391,8 +423,13 @@ class small_vector_header {
             int new_cap = capacity() + count;
             pointer new_first = allocate(new_cap);
 
-            uninitialized_relocate(m_first, pos, new_first);
-            uninitialized_relocate(pos, m_head, new_first + index + count);
+            try {
+                uninitialized_relocate(m_first, pos, new_first);
+                uninitialized_relocate(pos, m_head, new_first + index + count);
+            } catch (...) {
+                std::free(new_first);
+                throw;
+            }
 
             if (!is_small()) std::free(m_first);
 
@@ -421,7 +458,12 @@ class small_vector_header {
     void grow(int size_hint) {
         pointer new_first = allocate(size_hint);
 
-        uninitialized_relocate(m_first, m_head, new_first);
+        try {
+            uninitialized_relocate(m_first, m_head, new_first);
+        } catch (...) {
+            std::free(new_first);
+            throw;
+        }
 
         if (!is_small()) std::free(m_first);
 
@@ -486,13 +528,8 @@ class small_vector_header {
                             !std::is_nothrow_move_constructible<U>::value>::type
     uninitialized_relocate(const_iterator first, const_iterator last,
                            iterator dest) {
-        try {
-            for (auto begin = first; begin != last; ++begin, (void)++dest) {
-                ::new (dest) value_type(std::move(*begin));
-            }
-        } catch (...) {
-            std::free(dest);
-            throw;
+        for (auto begin = first; begin != last; ++begin, (void)++dest) {
+            ::new (dest) value_type(std::move(*begin));
         }
 
         for (auto begin = first; begin != last; ++begin) {
@@ -583,5 +620,10 @@ class small_vector : public small_vector_header<T>,
         return *this;
     }
 };
+
+template <typename T>
+void swap(small_vector_header<T>& x, small_vector_header<T>& y) {
+    x.swap(y);
+}
 
 } // namespace cfds

@@ -317,3 +317,21 @@ TEST_CASE("Insert elements with input iterators", "[small_vector]") {
     CHECK(v[2] == 'c');
     CHECK(v[3] == 'd');
 }
+
+TEST_CASE("Swap vectors", "[small_vector]") {
+    cfds::small_vector<int, 8> v1{1, 2, 3, 4};
+    cfds::small_vector<int, 4> v2{5, 6};
+
+    swap(v1, v2);
+
+    CHECK(v1.size() == 2);
+    CHECK(v2.size() == 4);
+
+    CHECK(v1[0] == 5);
+    CHECK(v1[1] == 6);
+
+    CHECK(v2[0] == 1);
+    CHECK(v2[1] == 2);
+    CHECK(v2[2] == 3);
+    CHECK(v2[3] == 4);
+}
