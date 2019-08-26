@@ -102,7 +102,7 @@ class small_vector_header {
         clear();
         reserve(ilist.size());
 
-        for (auto&& element : init) {
+        for (auto&& element : ilist) {
             emplace_back(element);
         }
     }
