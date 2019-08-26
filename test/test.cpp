@@ -377,3 +377,19 @@ TEST_CASE("Resize vector", "[small_vector]") {
         CHECK(v[2] == 3);
     }
 }
+
+TEST_CASE("Shrink small_vector for only fit the data", "[small_vector]") {
+    cfds::small_vector<int, 0> v{1};
+    v.reserve(8);
+
+    CHECK(v.capacity() == 8);
+
+    v.shrink_to_fit();
+
+    CHECK(v.capacity() == 1);
+
+    v.clear();
+    v.shrink_to_fit();
+
+    CHECK(v.capacity() == 0);
+}

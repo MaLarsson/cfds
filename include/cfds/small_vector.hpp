@@ -100,7 +100,7 @@ class small_vector_header {
 
     void assign(std::initializer_list<T> ilist) {
         clear();
-        reserve(init.size());
+        reserve(ilist.size());
 
         for (auto&& element : init) {
             emplace_back(element);
@@ -284,7 +284,29 @@ class small_vector_header {
     bool empty() const noexcept { return m_first == m_head; }
 
     void shrink_to_fit() {
-        // TODO ...
+        if (is_small() || size() == capacity()) return;
+
+        if (size() == 0) {
+            std::free(m_first);
+            m_first = m_head = m_last = nullptr;
+            return;
+        }
+
+        pointer new_first = static_cast<pointer>(
+            detail::safe_malloc(sizeof(value_type) * size()));
+
+        try {
+            uninitialized_relocate(m_first, m_head, new_first);
+        } catch (...) {
+            std::free(new_first);
+            throw;
+        }
+
+        if (!is_small()) std::free(m_first);
+
+        m_last = new_first + size();
+        m_head = new_first + size();
+        m_first = new_first;
     }
 
     void clear() {
