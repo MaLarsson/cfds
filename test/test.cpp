@@ -335,3 +335,45 @@ TEST_CASE("Swap vectors", "[small_vector]") {
     CHECK(v2[2] == 3);
     CHECK(v2[3] == 4);
 }
+
+TEST_CASE("Resize vector", "[small_vector]") {
+    cfds::small_vector<int> v{1, 2, 3};
+
+    SECTION("Resize to smaller than original size") {
+        v.resize(2);
+
+        CHECK(v.size() == 2);
+        CHECK(v[0] == 1);
+        CHECK(v[1] == 2);
+    }
+
+    SECTION("Resize to bigger than original size") {
+        v.resize(4);
+
+        CHECK(v.size() == 4);
+        CHECK(v[0] == 1);
+        CHECK(v[1] == 2);
+        CHECK(v[2] == 3);
+        CHECK(v[3] == 0);
+    }
+
+    SECTION("Resize to bigger than original size with value") {
+        v.resize(5, 10);
+
+        CHECK(v.size() == 5);
+        CHECK(v[0] == 1);
+        CHECK(v[1] == 2);
+        CHECK(v[2] == 3);
+        CHECK(v[3] == 10);
+        CHECK(v[4] == 10);
+    }
+
+    SECTION("Resize to same as original size") {
+        v.resize(3);
+
+        CHECK(v.size() == 3);
+        CHECK(v[0] == 1);
+        CHECK(v[1] == 2);
+        CHECK(v[2] == 3);
+    }
+}

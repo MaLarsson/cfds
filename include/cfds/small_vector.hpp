@@ -97,11 +97,35 @@ class small_vector_header {
     }
 
     void resize(size_type count) {
-        // TODO ...
+        if (count < size()) {
+            destroy_range(m_first + count, m_head);
+            m_head = m_first + count;
+            return;
+        }
+
+        if (count > size()) {
+            if (count > capacity()) grow(count);
+
+            for (int i = size(); i < count; ++i) {
+                emplace_back(T{});
+            }
+        }
     }
 
     void resize(size_type count, const value_type& value) {
-        // TODO ...
+        if (count < size()) {
+            destroy_range(m_first + count, m_head);
+            m_head = m_first + count;
+            return;
+        }
+
+        if (count > size()) {
+            if (count > capacity()) grow(count);
+
+            for (int i = size(); i < count; ++i) {
+		push_back(value);
+            }
+        }
     }
 
     void swap(small_vector_header& other) {
