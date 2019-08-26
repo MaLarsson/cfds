@@ -66,16 +66,45 @@ class small_vector_header {
     const_reverse_iterator crend() const { return reverse_iterator(m_first); }
 
     void assign(size_type count, const value_type& value) {
-        // TODO ...
+        clear();
+        reserve(count);
+
+        for (size_type i = 0; i < count; ++i) {
+            push_back(value);
+        }
     }
 
-    template <typename Iterator>
-    void assign(Iterator first, Iterator last) {
-        // TODO ...
+    template <typename InputIterator>
+    typename std::enable_if<
+        meta::is_input_iterator<InputIterator>::value &&
+        !meta::is_forward_iterator<InputIterator>::value>::type
+    assign(InputIterator first, InputIterator last) {
+        clear();
+
+        for (; first != last; ++first) {
+            emplace_back(*first);
+        }
+    }
+
+    template <typename ForwardIterator>
+    typename std::enable_if<
+        meta::is_forward_iterator<ForwardIterator>::value>::type
+    assign(ForwardIterator first, ForwardIterator last) {
+        clear();
+        reserve(std::distance(first, last));
+
+        for (; first != last; ++first) {
+            emplace_back(*first);
+        }
     }
 
     void assign(std::initializer_list<T> ilist) {
-        // TODO ...
+        clear();
+        reserve(init.size());
+
+        for (auto&& element : init) {
+            emplace_back(element);
+        }
     }
 
     template <typename... Args>
