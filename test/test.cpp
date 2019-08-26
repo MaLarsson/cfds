@@ -53,6 +53,33 @@ TEST_CASE("small_vector assignment", "[small_vector, assignment]") {
     CHECK(v5.back() == v4.back());
 }
 
+TEST_CASE("push_back value into vector", "[small_vector]") {
+    cfds::small_vector<int, 2> v{1, 2};
+
+    SECTION("push_back pr-value") {
+        v.push_back(3);
+
+        CHECK(v.size() == 3);
+        CHECK(v[2] == 3);
+    }
+
+    SECTION("push_back x-value") {
+        int i = 3;
+        v.push_back(std::move(i));
+
+        CHECK(v.size() == 3);
+        CHECK(v[2] == 3);
+    }
+
+    SECTION("push_back l-value") {
+        int i = 3;
+        v.push_back(i);
+
+        CHECK(v.size() == 3);
+        CHECK(v[2] == 3);
+    }
+}
+
 TEST_CASE("Check if small_vector is small", "[small_vector]") {
     cfds::small_vector<int, 4> v1{1, 2, 3, 4};
     cfds::small_vector<int, 4> v2{1, 2, 3, 4, 5};

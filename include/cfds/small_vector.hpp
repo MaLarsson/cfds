@@ -86,7 +86,7 @@ class small_vector_header {
     }
 
     void push_back(const value_type& value) {
-        push_back_impl(value, std::is_trivially_copyable<T>::type);
+        push_back_impl(value, std::is_trivially_copyable<T>::type{});
     }
 
     void push_back(value_type&& value) { emplace_back(std::move(value)); }
