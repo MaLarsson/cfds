@@ -46,24 +46,24 @@ class small_vector_header {
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
     ~small_vector_header() {
-        if (!is_small()) std::free(m_first);
+        if (!is_small()) std::free(m_begin);
     }
 
-    iterator begin() { return m_first; }
-    const_iterator begin() const { return m_first; }
-    const_iterator cbegin() const { return m_first; }
+    iterator begin() { return m_begin; }
+    const_iterator begin() const { return m_begin; }
+    const_iterator cbegin() const { return m_begin; }
 
-    iterator end() { return m_head; }
-    const_iterator end() const { return m_head; }
-    const_iterator cend() const { return m_head; }
+    iterator end() { return m_end; }
+    const_iterator end() const { return m_end; }
+    const_iterator cend() const { return m_end; }
 
-    reverse_iterator rbegin() { return reverse_iterator(m_head); }
-    const_reverse_iterator rbegin() const { return reverse_iterator(m_head); }
-    const_reverse_iterator crbegin() const { return reverse_iterator(m_head); }
+    reverse_iterator rbegin() { return reverse_iterator(m_end); }
+    const_reverse_iterator rbegin() const { return reverse_iterator(m_end); }
+    const_reverse_iterator crbegin() const { return reverse_iterator(m_end); }
 
-    reverse_iterator rend() { return reverse_iterator(m_first); }
-    const_reverse_iterator rend() const { return reverse_iterator(m_first); }
-    const_reverse_iterator crend() const { return reverse_iterator(m_first); }
+    reverse_iterator rend() { return reverse_iterator(m_begin); }
+    const_reverse_iterator rend() const { return reverse_iterator(m_begin); }
+    const_reverse_iterator crend() const { return reverse_iterator(m_begin); }
 
     void assign(size_type count, const value_type& value) {
         clear();
@@ -109,9 +109,9 @@ class small_vector_header {
 
     template <typename... Args>
     value_type& emplace_back(Args&&... args) {
-        if (m_head == m_last) grow(capacity() + 1);
-        ::new (m_head++) value_type(std::forward<Args>(args)...);
-        return *(m_head - 1);
+        if (m_end == m_end_cap) grow(capacity() + 1);
+        ::new (m_end++) value_type(std::forward<Args>(args)...);
+        return *(m_end - 1);
     }
 
     void push_back(const value_type& value) {
@@ -121,14 +121,14 @@ class small_vector_header {
     void push_back(value_type&& value) { emplace_back(std::move(value)); }
 
     void pop_back() {
-        destroy_range(m_head - 1, m_head);
-        --m_head;
+        destroy_range(m_end - 1, m_end);
+        --m_end;
     }
 
     void resize(size_type count) {
         if (count < size()) {
-            destroy_range(m_first + count, m_head);
-            m_head = m_first + count;
+            destroy_range(m_begin + count, m_end);
+            m_end = m_begin + count;
             return;
         }
 
@@ -143,8 +143,8 @@ class small_vector_header {
 
     void resize(size_type count, const value_type& value) {
         if (count < size()) {
-            destroy_range(m_first + count, m_head);
-            m_head = m_first + count;
+            destroy_range(m_begin + count, m_end);
+            m_end = m_begin + count;
             return;
         }
 
@@ -162,9 +162,9 @@ class small_vector_header {
 
         if (!is_small() && !other.is_small()) {
             using std::swap;
-            swap(m_first, other.m_first);
-            swap(m_last, other.m_last);
-            swap(m_head, other.m_head);
+            swap(m_begin, other.m_begin);
+            swap(m_end_cap, other.m_end_cap);
+            swap(m_end, other.m_end);
             return;
         }
 
@@ -214,19 +214,19 @@ class small_vector_header {
             !meta::is_forward_iterator<InputIterator>::value,
         iterator>::type
     insert(const_iterator pos, InputIterator first, InputIterator last) {
-        int index = static_cast<int>(pos - m_first);
-        detail::static_buffer<value_type> buffer(&m_first[index], m_head);
+        int index = static_cast<int>(pos - m_begin);
+        detail::static_buffer<value_type> buffer(&m_begin[index], m_end);
 
-        destroy_range(&m_first[index], m_head);
-        m_head = &m_first[index];
+        destroy_range(&m_begin[index], m_end);
+        m_end = &m_begin[index];
 
         for (auto iter = first; iter != last; ++iter) {
             push_back(*iter);
         }
 
-        insert(m_head, buffer.begin(), buffer.end());
+        insert(m_end, buffer.begin(), buffer.end());
 
-        return &m_first[index];
+        return &m_begin[index];
     }
 
     template <typename ForwardIterator>
@@ -248,14 +248,14 @@ class small_vector_header {
         return insert(pos, std::begin(ilist), std::end(ilist));
     }
 
-    value_type& back() { return *(m_head - 1); }
-    const value_type& back() const { return *(m_head - 1); }
+    value_type& back() { return *(m_end - 1); }
+    const value_type& back() const { return *(m_end - 1); }
 
-    value_type& front() { return *m_first; }
-    const value_type& front() const { return *m_first; }
+    value_type& front() { return *m_begin; }
+    const value_type& front() const { return *m_begin; }
 
-    value_type& operator[](int index) { return *(m_first + index); }
-    const value_type& operator[](int index) const { return *(m_first + index); }
+    value_type& operator[](int index) { return *(m_begin + index); }
+    const value_type& operator[](int index) const { return *(m_begin + index); }
 
     value_type& at(int index) {
         if (index >= size()) throw std::out_of_range("");
@@ -271,47 +271,47 @@ class small_vector_header {
         if (size > capacity()) grow(size);
     }
 
-    pointer data() noexcept { return m_first; }
-    const_pointer data() const noexcept { return m_first; }
+    pointer data() noexcept { return m_begin; }
+    const_pointer data() const noexcept { return m_begin; }
 
     size_type max_size() const noexcept {
         return std::min<size_type>(std::numeric_limits<size_type>::max(),
                                    std::numeric_limits<difference_type>::max());
     }
 
-    size_type size() const noexcept { return m_head - m_first; }
-    size_type capacity() const noexcept { return m_last - m_first; }
-    bool empty() const noexcept { return m_first == m_head; }
+    size_type size() const noexcept { return m_end - m_begin; }
+    size_type capacity() const noexcept { return m_end_cap - m_begin; }
+    bool empty() const noexcept { return m_begin == m_end; }
 
     void shrink_to_fit() {
         if (is_small() || size() == capacity()) return;
 
         if (size() == 0) {
-            std::free(m_first);
-            m_first = m_head = m_last = nullptr;
+            std::free(m_begin);
+            m_begin = m_end = m_end_cap = nullptr;
             return;
         }
 
-        pointer new_first = static_cast<pointer>(
+        pointer new_begin = static_cast<pointer>(
             detail::safe_malloc(sizeof(value_type) * size()));
 
         try {
-            uninitialized_relocate(m_first, m_head, new_first);
+            uninitialized_relocate(m_begin, m_end, new_begin);
         } catch (...) {
-            std::free(new_first);
+            std::free(new_begin);
             throw;
         }
 
-        if (!is_small()) std::free(m_first);
+        std::free(m_begin);
 
-        m_last = new_first + size();
-        m_head = new_first + size();
-        m_first = new_first;
+        m_end_cap = new_begin + size();
+        m_end = new_begin + size();
+        m_begin = new_begin;
     }
 
     void clear() {
-        destroy_range(m_first, m_head);
-        m_head = m_first;
+        destroy_range(m_begin, m_end);
+        m_end = m_begin;
     }
 
     iterator erase(const_iterator pos) { return erase(pos, pos + 1); }
@@ -321,18 +321,18 @@ class small_vector_header {
 
         destroy_range(first, last);
 
-        if (last != m_head) {
-            shift_data(last, m_head, const_cast<iterator>(first));
+        if (last != m_end) {
+            shift_data(last, m_end, const_cast<iterator>(first));
         }
 
-        m_head -= last - first;
+        m_end -= last - first;
 
         return const_cast<iterator>(first);
     }
 
     // Returns whether the inlined buffer is currently in use to store the data.
     bool is_small() const {
-        return m_first == detail::get_buffer_address(this);
+        return m_begin == detail::get_buffer_address(this);
     }
 
     small_vector_header& operator=(const small_vector_header& other) {
@@ -342,7 +342,7 @@ class small_vector_header {
             if (other.size() > 0) {
                 pointer head = std::copy(other.begin(), other.end(), begin());
                 destroy_range(head, end());
-                m_head = head;
+                m_end = head;
             } else {
                 clear();
             }
@@ -360,7 +360,7 @@ class small_vector_header {
         std::uninitialized_copy(other.begin() + size(), other.end(),
                                 begin() + size());
 
-        m_head = m_first + other.size();
+        m_end = m_begin + other.size();
 
         return *this;
     }
@@ -369,15 +369,15 @@ class small_vector_header {
         if (this == &other) return *this;
 
         if (!other.is_small()) {
-            destroy_range(m_first, m_head);
+            destroy_range(m_begin, m_end);
 
-            if (!is_small()) std::free(m_first);
+            if (!is_small()) std::free(m_begin);
 
-            m_first = other.m_first;
-            m_head = other.m_head;
-            m_last = other.m_last;
+            m_begin = other.m_begin;
+            m_end = other.m_end;
+            m_end_cap = other.m_end_cap;
 
-            other.m_first = other.m_head = other.m_last =
+            other.m_begin = other.m_end = other.m_end_cap =
                 static_cast<pointer>(detail::get_buffer_address(&other));
 
             return *this;
@@ -387,7 +387,7 @@ class small_vector_header {
             if (other.size() > 0) {
                 pointer head = std::move(other.begin(), other.end(), begin());
                 destroy_range(head, end());
-                m_head = head;
+                m_end = head;
             } else {
                 clear();
             }
@@ -407,7 +407,7 @@ class small_vector_header {
         uninitialized_move(other.begin() + size(), other.end(),
                            begin() + size());
 
-        m_head = m_first + other.size();
+        m_end = m_begin + other.size();
         other.clear();
 
         return *this;
@@ -415,8 +415,8 @@ class small_vector_header {
 
  protected:
     small_vector_header(int n) noexcept
-        : m_first(reinterpret_cast<pointer>(detail::get_buffer_address(this))),
-          m_last(m_first + n), m_head(m_first) {}
+        : m_begin(reinterpret_cast<pointer>(detail::get_buffer_address(this))),
+          m_end(m_begin), m_end_cap(m_begin + n) {}
 
     small_vector_header() = delete;
     small_vector_header(const small_vector_header&) = delete;
@@ -436,9 +436,9 @@ class small_vector_header {
     }
 
  private:
-    pointer m_first = nullptr;
-    pointer m_last = nullptr;
-    pointer m_head = nullptr;
+    pointer m_begin = nullptr;
+    pointer m_end = nullptr;
+    pointer m_end_cap = nullptr;
 
     void slow_swap(small_vector_header& big, small_vector_header& small) {
         if (big.size() > small.capacity()) small.grow(big.size());
@@ -450,11 +450,11 @@ class small_vector_header {
             swap(big[i], small[i]);
         }
 
-        uninitialized_relocate(big.m_first + nr_shared, big.m_head,
-                               small.m_first + nr_shared);
+        uninitialized_relocate(big.m_begin + nr_shared, big.m_end,
+                               small.m_begin + nr_shared);
 
-        small.m_head = small.m_first + big.size();
-        big.m_head = big.m_first + nr_shared;
+        small.m_end = small.m_begin + big.size();
+        big.m_end = big.m_begin + nr_shared;
     }
 
     template <typename InputIterator, typename ForwardIterator>
@@ -479,8 +479,8 @@ class small_vector_header {
 
     // Use memcpy instread of placement new when T is trivially copyable.
     void push_back_impl(const value_type& value, std::true_type) {
-        if (m_head == m_last) grow(capacity() + 1);
-        std::memcpy(m_head++, std::addressof(value), sizeof(value_type));
+        if (m_end == m_end_cap) grow(capacity() + 1);
+        std::memcpy(m_end++, std::addressof(value), sizeof(value_type));
     }
 
     void push_back_impl(const value_type& value, std::false_type) {
@@ -491,32 +491,32 @@ class small_vector_header {
     // small_vector starting at pos. This function may reallocate so an iterator
     // to the position in which elements can be constructed is returned.
     iterator make_space(const_iterator pos, size_type count) {
-        int index = static_cast<int>(pos - m_first);
+        int index = static_cast<int>(pos - m_begin);
         int new_size = size() + count;
 
         if (new_size > capacity()) {
             int new_cap = capacity() + count;
-            pointer new_first = allocate(new_cap);
+            pointer new_begin = allocate(new_cap);
 
             try {
-                uninitialized_relocate(m_first, pos, new_first);
-                uninitialized_relocate(pos, m_head, new_first + index + count);
+                uninitialized_relocate(m_begin, pos, new_begin);
+                uninitialized_relocate(pos, m_end, new_begin + index + count);
             } catch (...) {
-                std::free(new_first);
+                std::free(new_begin);
                 throw;
             }
 
-            if (!is_small()) std::free(m_first);
+            if (!is_small()) std::free(m_begin);
 
-            m_first = new_first;
-            m_head = new_first + new_size;
-            m_last = new_first + new_cap;
+            m_begin = new_begin;
+            m_end = new_begin + new_size;
+            m_end_cap = new_begin + new_cap;
         } else {
-            shift_data(pos, m_head, &m_first[index] + count);
-            ++m_head;
+            shift_data(pos, m_end, &m_begin[index] + count);
+            ++m_end;
         }
 
-        return &m_first[index];
+        return &m_begin[index];
     }
 
     // Allocates a new chunk of memory based on the size_hint and returns a
@@ -531,20 +531,20 @@ class small_vector_header {
     }
 
     void grow(int size_hint) {
-        pointer new_first = allocate(size_hint);
+        pointer new_begin = allocate(size_hint);
 
         try {
-            uninitialized_relocate(m_first, m_head, new_first);
+            uninitialized_relocate(m_begin, m_end, new_begin);
         } catch (...) {
-            std::free(new_first);
+            std::free(new_begin);
             throw;
         }
 
-        if (!is_small()) std::free(m_first);
+        if (!is_small()) std::free(m_begin);
 
-        m_last = new_first + size_hint;
-        m_head = new_first + size();
-        m_first = new_first;
+        m_end_cap = new_begin + size_hint;
+        m_end = new_begin + size();
+        m_begin = new_begin;
     }
 
     // Shift using std::memmove if T is trivially relocatable.
