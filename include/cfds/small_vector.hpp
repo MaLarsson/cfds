@@ -677,6 +677,42 @@ class small_vector : public small_vector_header<T>,
 };
 
 template <typename T>
+bool operator==(const small_vector_header<T>& x,
+                const small_vector_header<T>& y) {
+    return x.size() == y.size() && std::equal(x.begin(), x.end(), y.begin());
+}
+
+template <typename T>
+bool operator!=(const small_vector_header<T>& x,
+                const small_vector_header<T>& y) {
+    return !(x == y);
+}
+
+template <typename T>
+bool operator<(const small_vector_header<T>& x,
+               const small_vector_header<T>& y) {
+    return std::lexicographical_compare(x.begin(), x.end(), y.begin(), y.end());
+}
+
+template <typename T>
+bool operator>(const small_vector_header<T>& x,
+               const small_vector_header<T>& y) {
+    return y < x;
+}
+
+template <typename T>
+bool operator>=(const small_vector_header<T>& x,
+                const small_vector_header<T>& y) {
+    return !(x < y);
+}
+
+template <typename T>
+bool operator<=(const small_vector_header<T>& x,
+                const small_vector_header<T>& y) {
+    return !(y < x);
+}
+
+template <typename T>
 void swap(small_vector_header<T>& x, small_vector_header<T>& y) {
     x.swap(y);
 }
