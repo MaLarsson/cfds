@@ -15,7 +15,7 @@ TEST_CASE("Construction of small_vector_header",
     CHECK_FALSE(std::is_move_constructible<T>::value);
 }
 
-TEST_CASE("Construct through iterators", "[small_vector]") {
+TEST_CASE("Construct through iterators", "[small_vector, constructor]") {
     cfds::small_vector<int, 8> from{1, 2, 3, 4, 5, 6, 7, 8};
     cfds::small_vector<int, 4> to(std::begin(from), std::end(from));
 
@@ -99,7 +99,7 @@ TEST_CASE("Assign small_vector with assign", "[small_vector, assign]") {
     }
 }
 
-TEST_CASE("push_back value into vector", "[small_vector]") {
+TEST_CASE("push_back value into vector", "[small_vector, push_back]") {
     cfds::small_vector<int, 2> v{1, 2};
 
     SECTION("push_back pr-value") {
@@ -126,7 +126,7 @@ TEST_CASE("push_back value into vector", "[small_vector]") {
     }
 }
 
-TEST_CASE("Check if small_vector is small", "[small_vector]") {
+TEST_CASE("Check if small_vector is small", "[small_vector, is_small]") {
     cfds::small_vector<int, 4> v1{1, 2, 3, 4};
     cfds::small_vector<int, 4> v2{1, 2, 3, 4, 5};
     cfds::small_vector<int, 0> v3{};
@@ -157,13 +157,13 @@ TEST_CASE("Modify small_vector through small_vector_header&",
     CHECK(v.back() == 2);
 }
 
-TEST_CASE("Get first element with front", "[small_vector]") {
+TEST_CASE("Get first element with front", "[small_vector, front]") {
     cfds::small_vector<int, 0> v{1, 2, 3, 4};
 
     CHECK(v.front() == 1);
 }
 
-TEST_CASE("Modify through front and back", "[small_vector]") {
+TEST_CASE("Modify through front and back", "[small_vector, front, back]") {
     cfds::small_vector<int, 0> v{1, 2, 3, 4};
 
     CHECK(v.front() == 1);
@@ -181,7 +181,7 @@ TEST_CASE("Modify through front and back", "[small_vector]") {
     CHECK(v.at(3) == 14);
 }
 
-TEST_CASE("Access elements through data", "[small_vector]") {
+TEST_CASE("Access elements through data", "[small_vector, data]") {
     cfds::small_vector<int> v{1, 2, 3, 4};
     int* data = v.data();
 
@@ -191,7 +191,7 @@ TEST_CASE("Access elements through data", "[small_vector]") {
     CHECK(data[3] == 4);
 }
 
-TEST_CASE("Emplace in middle of small_vector", "[small_vector]") {
+TEST_CASE("Emplace in middle of small_vector", "[small_vector, emplace]") {
     cfds::small_vector<double> v{1.0, 2.0, 3.0};
 
     auto iter = v.emplace(std::begin(v) + 1, 1.5);
@@ -216,7 +216,7 @@ TEST_CASE("Emplace in middle of small_vector", "[small_vector]") {
     CHECK(v[4] == 3.0);
 }
 
-TEST_CASE("Emplace overflow", "[small_vector]") {
+TEST_CASE("Emplace overflow", "[small_vector, emplace]") {
     cfds::small_vector<double> v{1.0, 2.0, 3.0, 4.0};
 
     CHECK(v.size() == 4);
@@ -235,7 +235,7 @@ TEST_CASE("Emplace overflow", "[small_vector]") {
     CHECK(v[4] == 4.0);
 }
 
-TEST_CASE("Emplace with non-trivial type", "[small_vector]") {
+TEST_CASE("Emplace with non-trivial type", "[small_vector, emplace]") {
     cfds::small_vector<std::string> v{"aa", "bb"};
 
     CHECK(v.size() == 2);
@@ -252,7 +252,7 @@ TEST_CASE("Emplace with non-trivial type", "[small_vector]") {
     CHECK(v[2] == "bb");
 }
 
-TEST_CASE("Erase with same iterator", "[small_vector]") {
+TEST_CASE("Erase with same iterator", "[small_vector, erase]") {
     cfds::small_vector<std::string> v{"aa", "bb", "cc", "dd"};
 
     CHECK(v.size() == 4);
@@ -267,7 +267,7 @@ TEST_CASE("Erase with same iterator", "[small_vector]") {
     CHECK(v[3] == "dd");
 }
 
-TEST_CASE("Erase elements for small_vector", "[small_vector]") {
+TEST_CASE("Erase elements for small_vector", "[small_vector, erase]") {
     cfds::small_vector<std::string> v{"aa", "bb", "cc", "dd"};
 
     CHECK(v.size() == 4);
@@ -281,7 +281,7 @@ TEST_CASE("Erase elements for small_vector", "[small_vector]") {
     CHECK(v[2] == "dd");
 }
 
-TEST_CASE("Remove last element with pop_back", "[small_vector]") {
+TEST_CASE("Remove last element with pop_back", "[small_vector, pop_back]") {
     std::shared_ptr<int> shared = std::make_shared<int>(1);
     cfds::small_vector<std::shared_ptr<int>> shared_ptr_v{shared, shared};
     cfds::small_vector<std::string> string_v{"aa", "bb"};
@@ -302,7 +302,7 @@ TEST_CASE("Remove last element with pop_back", "[small_vector]") {
     CHECK(int_v.size() == 1);
 }
 
-TEST_CASE("Insert elements into small_vector", "[small_vector]") {
+TEST_CASE("Insert elements into small_vector", "[small_vector, insert]") {
     cfds::small_vector<int> full_v{1, 2, 3, 4};
     cfds::small_vector<int> v{4};
 
@@ -336,7 +336,7 @@ TEST_CASE("Insert elements into small_vector", "[small_vector]") {
     }
 }
 
-TEST_CASE("Insert elements with iterators", "[small_vector]") {
+TEST_CASE("Insert elements with iterators", "[small_vector, insert]") {
     cfds::small_vector<int> v{1, 5};
     cfds::small_vector<int> from{2, 3, 4};
 
@@ -350,7 +350,7 @@ TEST_CASE("Insert elements with iterators", "[small_vector]") {
     CHECK(v[4] == 5);
 }
 
-TEST_CASE("Insert elements with input iterators", "[small_vector]") {
+TEST_CASE("Insert elements with input iterators", "[small_vector, insert]") {
     cfds::small_vector<char> v{'a', 'd'};
     std::istringstream from("bc");
 
@@ -364,7 +364,7 @@ TEST_CASE("Insert elements with input iterators", "[small_vector]") {
     CHECK(v[3] == 'd');
 }
 
-TEST_CASE("Swap vectors", "[small_vector]") {
+TEST_CASE("Swap vectors", "[small_vector, swap]") {
     cfds::small_vector<int, 8> v1{1, 2, 3, 4};
     cfds::small_vector<int, 4> v2{5, 6};
 
@@ -382,7 +382,7 @@ TEST_CASE("Swap vectors", "[small_vector]") {
     CHECK(v2[3] == 4);
 }
 
-TEST_CASE("Resize vector", "[small_vector]") {
+TEST_CASE("Resize vector", "[small_vector, resize]") {
     cfds::small_vector<int> v{1, 2, 3};
 
     SECTION("Resize to smaller than original size") {
@@ -424,7 +424,8 @@ TEST_CASE("Resize vector", "[small_vector]") {
     }
 }
 
-TEST_CASE("Shrink small_vector for only fit the data", "[small_vector]") {
+TEST_CASE("Shrink small_vector for only fit the data",
+          "[small_vector, shrink_to_fit]") {
     cfds::small_vector<int, 0> v{1};
     v.reserve(8);
 
