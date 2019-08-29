@@ -53,6 +53,52 @@ TEST_CASE("small_vector assignment", "[small_vector, assignment]") {
     CHECK(v5.back() == v4.back());
 }
 
+TEST_CASE("Assign small_vector with assign", "[small_vector, assign]") {
+    cfds::small_vector<int, 4> v{1, 2, 3};
+
+    SECTION("Assign smaller initializer_list") {
+        v.assign({4, 5});
+
+        CHECK(v.size() == 2);
+        CHECK(v[0] == 4);
+        CHECK(v[1] == 5);
+    }
+
+    SECTION("Assign bigger initializer_list") {
+        v.assign({4, 5, 6, 7, 8, 9});
+
+        CHECK(v.size() == 6);
+        CHECK(v[0] == 4);
+        CHECK(v[1] == 5);
+        CHECK(v[2] == 6);
+        CHECK(v[3] == 7);
+        CHECK(v[4] == 8);
+        CHECK(v[5] == 9);
+    }
+
+    SECTION("Assign smaller iterator pair") {
+        cfds::small_vector<int, 4> from{4, 5};
+        v.assign(from.begin(), from.end());
+
+        CHECK(v.size() == 2);
+        CHECK(v[0] == 4);
+        CHECK(v[1] == 5);
+    }
+
+    SECTION("Assign bigger iterator pair") {
+        cfds::small_vector<int, 6> from{4, 5, 6, 7, 8, 9};
+        v.assign(from.begin(), from.end());
+
+        CHECK(v.size() == 6);
+        CHECK(v[0] == 4);
+        CHECK(v[1] == 5);
+        CHECK(v[2] == 6);
+        CHECK(v[3] == 7);
+        CHECK(v[4] == 8);
+        CHECK(v[5] == 9);
+    }
+}
+
 TEST_CASE("push_back value into vector", "[small_vector]") {
     cfds::small_vector<int, 2> v{1, 2};
 
