@@ -440,3 +440,28 @@ TEST_CASE("Shrink small_vector for only fit the data",
 
     CHECK(v.capacity() == 0);
 }
+
+TEST_CASE("Compare small_vector", "[small_vector, comparison]") {
+    cfds::small_vector<int> v1{1, 2, 3};
+    cfds::small_vector<int, 2> v2{4, 5};
+
+    CHECK(v1 < v2);
+    CHECK(v1 <= v2);
+    CHECK_FALSE(v2 < v1);
+    CHECK_FALSE(v2 <= v1);
+
+    CHECK(v1 != v2);
+    CHECK_FALSE(v1 == v2);
+    CHECK(v1 == v1);
+    CHECK(v2 == v2);
+
+    CHECK(v2 > v1);
+    CHECK(v2 >= v1);
+    CHECK_FALSE(v1 > v2);
+    CHECK_FALSE(v1 >= v2);
+
+    CHECK(v1 >= v1);
+    CHECK(v1 <= v1);
+    CHECK(v2 >= v2);
+    CHECK(v2 <= v2);
+}
