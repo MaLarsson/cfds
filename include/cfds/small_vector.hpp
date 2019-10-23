@@ -74,24 +74,13 @@ class small_vector_header {
         }
     }
 
-    template <typename InputIterator>
-    typename std::enable_if<
-        meta::is_input_iterator<InputIterator>::value &&
-        !meta::is_forward_iterator<InputIterator>::value>::type
-    assign(InputIterator first, InputIterator last) {
+    template <meta::Iterator Iter>
+    void assign(Iter first, Iter last) {
         clear();
 
-        for (; first != last; ++first) {
-            emplace_back(*first);
+        if constexpr (meta::ForwardIterator<Iter>) {
+            reserve(std::distance(first, last));
         }
-    }
-
-    template <typename ForwardIterator>
-    typename std::enable_if<
-        meta::is_forward_iterator<ForwardIterator>::value>::type
-    assign(ForwardIterator first, ForwardIterator last) {
-        clear();
-        reserve(std::distance(first, last));
 
         for (; first != last; ++first) {
             emplace_back(*first);
@@ -208,12 +197,8 @@ class small_vector_header {
     // Overload of insert with iterators that has the iterator_category
     // std::input_iterator_tag. Input iterators are single pass so we cant
     // calculate the distance between first and last before insertion.
-    template <typename InputIterator>
-    typename std::enable_if<
-        meta::is_input_iterator<InputIterator>::value &&
-            !meta::is_forward_iterator<InputIterator>::value,
-        iterator>::type
-    insert(const_iterator pos, InputIterator first, InputIterator last) {
+    template <meta::InputIterator Iter>
+    iterator insert(const_iterator pos, Iter first, Iter last) {
         int index = static_cast<int>(pos - m_begin);
         detail::static_buffer<value_type> buffer(&m_begin[index], m_end);
 
@@ -229,10 +214,8 @@ class small_vector_header {
         return &m_begin[index];
     }
 
-    template <typename ForwardIterator>
-    typename std::enable_if<meta::is_forward_iterator<ForwardIterator>::value,
-                            iterator>::type
-    insert(const_iterator pos, ForwardIterator first, ForwardIterator last) {
+    template <meta::ForwardIterator Iter>
+    iterator insert(const_iterator pos, Iter first, Iter last) {
         int count = std::distance(first, last);
         iterator iter = make_space(pos, count);
 
@@ -422,16 +405,11 @@ class small_vector_header {
     small_vector_header(const small_vector_header&) = delete;
     small_vector_header(small_vector_header&&) = delete;
 
-    // Turn destroy_range into a noop when T is trivially copyable.
-    template <typename U = T>
-    static typename std::enable_if<std::is_trivially_copyable<U>::value>::type
-    destroy_range(const_iterator, const_iterator) {}
-
-    template <typename U = T>
-    static typename std::enable_if<!std::is_trivially_copyable<U>::value>::type
-    destroy_range(const_iterator begin, const_iterator end) {
-        for (; begin != end; ++begin) {
-            begin->~value_type();
+    static void destroy_range(const_iterator begin, const_iterator end) {
+        if constexpr (!std::is_trivially_copyable_v<T>) {
+            for (; begin != end; ++begin) {
+                begin->~value_type();
+            }
         }
     }
 
@@ -457,24 +435,19 @@ class small_vector_header {
         big.m_end = big.m_begin + nr_shared;
     }
 
-    template <typename InputIterator, typename ForwardIterator>
-    static void uninitialized_move(InputIterator first, InputIterator last,
-                                   ForwardIterator dest) {
+    template <meta::Iterator Input, meta::ForwardIterator Forward>
+    static void uninitialized_move(Input first, Input last, Forward dest) {
         std::uninitialized_copy(std::make_move_iterator(first),
                                 std::make_move_iterator(last), dest);
     }
 
     // Use memcpy instread of placement new when T is trivially copyable.
-    template <typename U = T>
-    static typename std::enable_if<std::is_trivially_copyable<U>::value>::type
-    insert_at_pos(pointer pos, const value_type& value) {
-        std::memcpy(pos, std::addressof(value), sizeof(value_type));
-    }
-
-    template <typename U = T>
-    static typename std::enable_if<!std::is_trivially_copyable<U>::value>::type
-    insert_at_pos(pointer pos, const value_type& value) {
-        ::new (pos) value_type(value);
+    static void insert_at_pos(pointer pos, const value_type& value) {
+        if constexpr (std::is_trivially_copyable_v<T>) {
+            std::memcpy(pos, std::addressof(value), sizeof(value_type));
+        } else {
+            ::new (pos) value_type(value);
+        }
     }
 
     // Use memcpy instread of placement new when T is trivially copyable.

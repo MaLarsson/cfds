@@ -8,9 +8,6 @@
 namespace cfds {
 namespace meta {
 
-template <bool B>
-using bool_constant = std::integral_constant<bool, B>;
-
 template <int N>
 struct priority_tag : priority_tag<N - 1> {};
 
@@ -21,12 +18,12 @@ namespace detail {
 
 template <typename T>
 auto is_trivially_relocatable_impl(priority_tag<1>)
-    -> bool_constant<T::is_trivially_relocatable::value>;
+    -> std::bool_constant<T::is_trivially_relocatable::value>;
 
 template <typename T>
 auto is_trivially_relocatable_impl(priority_tag<0>)
-    -> bool_constant<std::is_trivially_move_constructible<T>::value &&
-                     std::is_trivially_destructible<T>::value>;
+    -> std::bool_constant<std::is_trivially_move_constructible<T>::value &&
+                          std::is_trivially_destructible<T>::value>;
 
 } // namespace detail
 
@@ -43,6 +40,9 @@ struct is_trivially_relocatable<std::shared_ptr<T>> : std::true_type {};
 template <typename T>
 struct is_trivially_relocatable<std::weak_ptr<T>> : std::true_type {};
 
+template <typename T>
+concept TriviallyRelocatable = is_trivially_relocatable<T>::value;
+
 template <typename Iterator>
 struct is_input_iterator
     : std::is_base_of<
@@ -54,6 +54,16 @@ struct is_forward_iterator
     : std::is_base_of<
           std::forward_iterator_tag,
           typename std::iterator_traits<Iterator>::iterator_category> {};
+
+template <typename T>
+concept Iterator = is_input_iterator<T>::value;
+
+template <typename T>
+concept InputIterator =
+    is_input_iterator<T>::value && !is_forward_iterator<T>::value;
+
+template <typename T>
+concept ForwardIterator = is_forward_iterator<T>::value;
 
 } // namespace meta
 } // namespace cfds
