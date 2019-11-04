@@ -74,11 +74,10 @@ class small_vector_header {
         }
     }
 
-    template <meta::Iterator Iter>
-    void assign(Iter first, Iter last) {
+    void assign(meta::iterator auto first, meta::iterator auto last) {
         clear();
 
-        if constexpr (meta::ForwardIterator<Iter>) {
+        if constexpr (meta::forward_iterator<decltype(first)>) {
             reserve(std::distance(first, last));
         }
 
@@ -104,7 +103,11 @@ class small_vector_header {
     }
 
     void push_back(const value_type& value) {
-        push_back_impl(value, typename std::is_trivially_copyable<T>::type{});
+        if constexpr (std::is_trivially_copyable_v<value_type>) {
+            std::memcpy(m_end++, std::addressof(value), sizeof(value_type));
+        } else {
+            emplace_back(value);
+        }
     }
 
     void push_back(value_type&& value) { emplace_back(std::move(value)); }
@@ -197,8 +200,8 @@ class small_vector_header {
     // Overload of insert with iterators that has the iterator_category
     // std::input_iterator_tag. Input iterators are single pass so we cant
     // calculate the distance between first and last before insertion.
-    template <meta::InputIterator Iter>
-    iterator insert(const_iterator pos, Iter first, Iter last) {
+    iterator insert(const_iterator pos, meta::input_iterator auto first,
+                    meta::input_iterator auto last) {
         int index = static_cast<int>(pos - m_begin);
         detail::static_buffer<value_type> buffer(&m_begin[index], m_end);
 
@@ -214,8 +217,8 @@ class small_vector_header {
         return &m_begin[index];
     }
 
-    template <meta::ForwardIterator Iter>
-    iterator insert(const_iterator pos, Iter first, Iter last) {
+    iterator insert(const_iterator pos, meta::forward_iterator auto first,
+                    meta::forward_iterator auto last) {
         int count = std::distance(first, last);
         iterator iter = make_space(pos, count);
 
@@ -435,8 +438,9 @@ class small_vector_header {
         big.m_end = big.m_begin + nr_shared;
     }
 
-    template <meta::Iterator Input, meta::ForwardIterator Forward>
-    static void uninitialized_move(Input first, Input last, Forward dest) {
+    static void uninitialized_move(meta::iterator auto first,
+                                   meta::iterator auto last,
+                                   meta::forward_iterator auto dest) {
         std::uninitialized_copy(std::make_move_iterator(first),
                                 std::make_move_iterator(last), dest);
     }
@@ -448,16 +452,6 @@ class small_vector_header {
         } else {
             ::new (pos) value_type(value);
         }
-    }
-
-    // Use memcpy instread of placement new when T is trivially copyable.
-    void push_back_impl(const value_type& value, std::true_type) {
-        if (m_end == m_end_cap) grow(capacity() + 1);
-        std::memcpy(m_end++, std::addressof(value), sizeof(value_type));
-    }
-
-    void push_back_impl(const value_type& value, std::false_type) {
-        emplace_back(value);
     }
 
     // Shifts around data to be able to construct count elements into the
@@ -521,67 +515,46 @@ class small_vector_header {
     }
 
     // Shift using std::memmove if T is trivially relocatable.
-    template <typename U = T>
-    typename std::enable_if<meta::is_trivially_relocatable<U>::value>::type
-    shift_data(const_iterator first, const_iterator last,
-               iterator dest) noexcept {
-        std::memmove(dest, first, sizeof(value_type) * (last - first));
+    static void shift_data(const_iterator first, const_iterator last,
+                           iterator dest) noexcept {
+        if constexpr (meta::trivially_relocatable<T>) {
+            std::memmove(dest, first, sizeof(value_type) * (last - first));
+        } else {
+            if (dest < first) {
+                for (auto begin = first; begin != last; ++begin, (void)++dest) {
+                    ::new (dest) value_type(std::move(*begin));
+                    begin->~value_type();
+                }
+            } else {
+                for (const_reverse_iterator rbegin(last);
+                     rbegin != const_reverse_iterator(first);
+                     ++rbegin, (void)++dest) {
+                    ::new (dest) value_type(std::move(*rbegin));
+                    rbegin->~value_type();
+                }
+            }
+        }
     }
 
-    // Shift by calling constructor and destructor as a pair.
-    template <typename U = T>
-    typename std::enable_if<!meta::is_trivially_relocatable<U>::value>::type
-    shift_data(const_iterator first, const_iterator last, iterator dest) {
-        if (dest < first) {
+    static void uninitialized_relocate(const_iterator first,
+                                       const_iterator last,
+                                       iterator dest) noexcept {
+        if constexpr (meta::trivially_relocatable<value_type>) {
+            std::memcpy(dest, first, sizeof(value_type) * (last - first));
+        } else if constexpr (meta::trivially_relocatable<value_type> &&
+                             std::is_nothrow_move_constructible_v<value_type>) {
             for (auto begin = first; begin != last; ++begin, (void)++dest) {
                 ::new (dest) value_type(std::move(*begin));
                 begin->~value_type();
             }
         } else {
-            for (const_reverse_iterator rbegin(last);
-                 rbegin != const_reverse_iterator(first);
-                 ++rbegin, (void)++dest) {
-                ::new (dest) value_type(std::move(*rbegin));
-                rbegin->~value_type();
+            for (auto begin = first; begin != last; ++begin, (void)++dest) {
+                ::new (dest) value_type(std::move(*begin));
             }
-        }
-    }
 
-    // Relocate using std::memcpy if T is trivially relocatable.
-    template <typename U = T>
-    typename std::enable_if<meta::is_trivially_relocatable<U>::value>::type
-    uninitialized_relocate(const_iterator first, const_iterator last,
-                           iterator dest) noexcept {
-        std::memcpy(dest, first, sizeof(value_type) * (last - first));
-    }
-
-    // Relocate by calling constructor and destructor as a pair since there is
-    // no risk of the constructor throwing.
-    template <typename U = T>
-    typename std::enable_if<!meta::is_trivially_relocatable<U>::value &&
-                            std::is_nothrow_move_constructible<U>::value>::type
-    uninitialized_relocate(const_iterator first, const_iterator last,
-                           iterator dest) noexcept {
-        for (auto begin = first; begin != last; ++begin, (void)++dest) {
-            ::new (dest) value_type(std::move(*begin));
-            begin->~value_type();
-        }
-    }
-
-    // Relocate by calling the constructor and only after all elements have been
-    // relocated can the destructor for the old shells be called since the
-    // constructor might throw.
-    template <typename U = T>
-    typename std::enable_if<!meta::is_trivially_relocatable<U>::value &&
-                            !std::is_nothrow_move_constructible<U>::value>::type
-    uninitialized_relocate(const_iterator first, const_iterator last,
-                           iterator dest) {
-        for (auto begin = first; begin != last; ++begin, (void)++dest) {
-            ::new (dest) value_type(std::move(*begin));
-        }
-
-        for (auto begin = first; begin != last; ++begin) {
-            begin->~value_type();
+            for (auto begin = first; begin != last; ++begin) {
+                begin->~value_type();
+            }
         }
     }
 };
@@ -597,25 +570,11 @@ class small_vector : public small_vector_header<T>,
 
     ~small_vector() { this->destroy_range(this->begin(), this->end()); }
 
-    template <typename InputIterator>
-    small_vector(typename std::enable_if<
-                     meta::is_input_iterator<InputIterator>::value &&
-                         !meta::is_forward_iterator<InputIterator>::value,
-                     InputIterator>::type first,
-                 InputIterator last)
+    small_vector(meta::iterator auto first, meta::iterator auto last)
         : small_vector() {
-        for (; first != last; ++first) {
-            this->emplace_back(*first);
+        if constexpr (meta::forward_iterator<decltype(first)>) {
+            this->reserve(std::distance(first, last));
         }
-    }
-
-    template <typename ForwardIterator>
-    small_vector(typename std::enable_if<
-                     meta::is_forward_iterator<ForwardIterator>::value,
-                     ForwardIterator>::type first,
-                 ForwardIterator last)
-        : small_vector() {
-        this->reserve(std::distance(first, last));
 
         for (; first != last; ++first) {
             this->emplace_back(*first);

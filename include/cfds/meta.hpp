@@ -1,5 +1,6 @@
 #pragma once
 
+#include <concepts>
 #include <cstddef>
 #include <memory>
 #include <type_traits>
@@ -41,29 +42,27 @@ template <typename T>
 struct is_trivially_relocatable<std::weak_ptr<T>> : std::true_type {};
 
 template <typename T>
-concept TriviallyRelocatable = is_trivially_relocatable<T>::value;
+concept trivially_relocatable = is_trivially_relocatable<T>::value;
 
-template <typename Iterator>
-struct is_input_iterator
-    : std::is_base_of<
-          std::input_iterator_tag,
-          typename std::iterator_traits<Iterator>::iterator_category> {};
+namespace detail {
 
-template <typename Iterator>
-struct is_forward_iterator
-    : std::is_base_of<
-          std::forward_iterator_tag,
-          typename std::iterator_traits<Iterator>::iterator_category> {};
+template <typename I>
+using iterator_tag_t = typename std::iterator_traits<I>::iterator_category;
 
-template <typename T>
-concept Iterator = is_input_iterator<T>::value;
+} // namespace detail
 
-template <typename T>
-concept InputIterator =
-    is_input_iterator<T>::value && !is_forward_iterator<T>::value;
+template <typename I>
+concept iterator = std::weakly_incrementable<I> && requires(I i) {
+    *i;
+};
 
-template <typename T>
-concept ForwardIterator = is_forward_iterator<T>::value;
+template <typename I>
+concept input_iterator = iterator<I> &&
+    std::derived_from<detail::iterator_tag_t<I>, std::input_iterator_tag>;
+
+template <typename I>
+concept forward_iterator = input_iterator<I> &&
+    std::derived_from<detail::iterator_tag_t<I>, std::forward_iterator_tag>;
 
 } // namespace meta
 } // namespace cfds

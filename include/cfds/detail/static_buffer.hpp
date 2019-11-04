@@ -35,11 +35,8 @@ struct static_buffer {
     pointer m_begin = nullptr;
     pointer m_end = nullptr;
 
-    template <typename ForwardIterator>
-    static_buffer(typename std::enable_if<
-                      meta::is_forward_iterator<ForwardIterator>::value,
-                      ForwardIterator>::type first,
-                  ForwardIterator last) {
+    static_buffer(meta::forward_iterator auto first,
+                  meta::forward_iterator auto last) {
         std::size_t count = std::distance(first, last);
         void* data = detail::safe_malloc(sizeof(value_type) * count);
 
@@ -64,31 +61,23 @@ struct static_buffer {
     }
 
  private:
-    template <typename U = T>
-    typename std::enable_if<std::is_trivially_copyable<U>::value>::type
-    clear() {}
-
-    template <typename U = T>
-    typename std::enable_if<!std::is_trivially_copyable<U>::value>::type
-    clear() {
-        for (pointer p = m_begin; p != m_end; ++p) {
-            p->~value_type();
+    void clear() {
+        if constexpr (!std::is_trivially_copyable_v<value_type>) {
+            for (pointer p = m_begin; p != m_end; ++p) {
+                p->~value_type();
+            }
         }
     }
 
-    template <typename ForwardIterator, typename U = T>
-    typename std::enable_if<std::is_trivially_copyable<U>::value>::type
-    construct_range(ForwardIterator first, std::size_t count) {
-        std::memcpy(m_end, first, sizeof(value_type) * count);
-        m_end += count;
-    }
-
-    template <typename ForwardIterator, typename U = T>
-    typename std::enable_if<!std::is_trivially_copyable<U>::value>::type
-    construct_range(ForwardIterator first, std::size_t count) {
-        for (std::size_t i = 0; i < count; ++i, (void)++first) {
-            ::new (m_end) value_type(*first);
-            ++m_end;
+    void construct_range(meta::forward_iterator auto first, std::size_t count) {
+        if constexpr (std::is_trivially_copyable_v<value_type>) {
+            std::memcpy(m_end, first, sizeof(value_type) * count);
+            m_end += count;
+        } else {
+            for (std::size_t i = 0; i < count; ++i, (void)++first) {
+                ::new (m_end) value_type(*first);
+                ++m_end;
+            }
         }
     }
 };
